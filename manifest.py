@@ -12,7 +12,7 @@ import sys
 def main():
     with open(sys.argv[1], 'rb') as bibs:
         reader = MARCReader(bibs)
-        # intial for-loop lets you process a collection with multiple records if necessary
+        # initial for-loop lets you process a collection with multiple records if necessary
         for record in reader:
             # gather file / record identifiers
             long_identifier = str(record['001'])
