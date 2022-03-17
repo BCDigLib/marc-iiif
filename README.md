@@ -12,10 +12,11 @@ pip install -r requirements.txt
 
 # Usage
 
-To generate views and manifests for MARC records in a binary MARC record called *records.mrc*:
+To generate views and manifests for MARC records in a binary MARC record called *records.mrc* and Handle service 
+password `handle_password`:
 
 ```shell
-python manifest.py records.mrc
+python manifest.py records.mrc handle_password
 ```
 
 # Instructions
@@ -26,5 +27,6 @@ python manifest.py records.mrc
 4. Place script and MARC file in the same directory, and place the JP2s in the _jp2s_ directory.
 5. Run script.
 6. Upload views and manifests to IIIF server.
-7. Update bibliographic records in Alma with links to the viewer.
+7. Run the generated Handle batchfile.
+8. Update bibliographic records in Alma with links to the viewer.
 

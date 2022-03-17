@@ -1,15 +1,23 @@
 # this script takes a binary MARC file and a folder full of JP2s to produce a IIIF-compliant JSON manifest
-# usage: |manifest.py records.mrc| where records.mrc is a binary marc file containing bibliographic records for the
-# items for which you're creating manifests. This script must be run from within a folder containing all of the relevant
-# images formatted as JP2s, and the images must also be uploaded to the library IIIF server before running the script.
+# usage: |manifest.py records.mrc hdl_passwd| where records.mrc is a binary marc file containing bibliographic records
+# for the items for which you're creating manifests and hdl_passwd is the Handle password. This script must be run from
+# within a folder containing all of the relevant images formatted as JP2s, and the images must also be uploaded to the
+# library IIIF server before running the script.
 
 import json
 import os
+from datetime import datetime
+
 from pymarc import MARCReader, Field
 import requests
 import sys
 
 def main():
+    check_requirements()
+
+    hdl_create_statements = []
+    hdl_passwd = sys.argv[2]
+
     with open(sys.argv[1], 'rb') as bibs:
         reader = MARCReader(bibs)
         # initial for-loop lets you process a collection with multiple records if necessary
@@ -34,14 +42,36 @@ def main():
 
             # add if statement to look for cartographic records, determined by an 'e' in the 6th position of the LDR
 
-            outfile = open('manifests/'+ identifier + '.json', 'w')
-            outfile.write(json.dumps(manifest))
-            outfile.close()
-            view = build_view(identifier,record)
-            viewout = open('view/' + identifier, 'w')
-            viewout.write(view)
-            viewout.close()
+            write_manifest_file(identifier, manifest)
+
+            view = build_view(identifier, record)
+            write_view_file(identifier, view)
+
+            hdl_create_statements.append(build_handles(identifier, hdl_passwd))
     bibs.close()
+
+    write_hdl_batchfile(hdl_create_statements)
+
+
+def write_view_file(identifier, view):
+    view_file = open('view/' + identifier, 'w')
+    view_file.write(view)
+    view_file.close()
+
+
+def write_manifest_file(identifier, manifest):
+    manifest_file = open('manifests/' + identifier + '.json', 'w')
+    manifest_file.write(json.dumps(manifest))
+    manifest_file.close()
+
+
+def write_hdl_batchfile(hdl_create_statements):
+    hdl_file_title = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
+    hdl_out = open('hdl/handles-' + hdl_file_title + '.txt', 'w')
+    all_hdl_create_statements = '\n'.join(hdl_create_statements)
+    hdl_out.write(all_hdl_create_statements)
+    hdl_out.close()
+
 
 def build_law_metadata(file_list, record, identifier):
     # gather metadata
@@ -62,6 +92,7 @@ def build_law_metadata(file_list, record, identifier):
         {'handle': 'http://hdl.handle.net/2345.2/' + identifier},{'label':'Preferred Citation', 'value':citation}],
            'sequences': build_sequence(file_list), 'structures':build_structures(file_list)}
     return blob
+
 
 def build_burns_metadata(file_list, record, identifier):
     # gather metadata
@@ -111,6 +142,7 @@ def build_sequence(file_list):
             continue
     return sequence
 
+
 def build_structures(file_list):
     structures = []
     index  = 0
@@ -123,6 +155,7 @@ def build_structures(file_list):
         index += 1
         structures.append(blob)
     return structures
+
 
 def build_view(identifier,record):
     title = record.title()
@@ -144,6 +177,19 @@ def build_view(identifier,record):
             '</script>\n<script type="text/javascript" src="/iiif/bc-mirador/bcViewer.js"></script>\n' \
             '</body>\n</html>'
     return blob
+
+
+def build_handles(identifier, hdl_password):
+    return f'CREATE 2345.2/{identifier}\n' \
+           f'100 HS_ADMIN 86400 1110 ADMIN 300:111111111111:2345.2/{identifier}\n' \
+           f'300 HS_SECKEY 86400 1100 UTF8 {hdl_password}\n' \
+           f'201 URL 86400 1110 UTF8 https://bclib.bc.edu/libsearch/bc/mms/{identifier}\n'
+
+
+def check_requirements():
+    # Uses Literal String Interpolation, available only in Python 3.6+
+    if sys.version_info < (3, 6):
+        raise Exception('Requires python 3.6 or higher')
 
 
 main()
