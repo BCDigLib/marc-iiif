@@ -26,14 +26,14 @@ def main():
             # this list will be unordered, so sort it
             file_list.sort()
             # figure out which library it's from and route it to the proper function
-            try:
-                if "BCLL RBR" in record['510']['a']:
-                    manifest = build_law_metadata(file_list, record, identifier)
-            except TypeError:
-                pass
+
+            if record['510'] and "BCLL RBR" in record['510']['a']:
+                manifest = build_law_metadata(file_list, record, identifier)
+            else:
+                manifest = build_burns_metadata(file_list, record, identifier)
+
             # add if statement to look for cartographic records, determined by an 'e' in the 6th position of the LDR
-            if record['945'] is not None or record['998'] is not None:
-                manifest = build_burns_metadata(file_list, record,identifier)
+
             outfile = open('manifests/'+ identifier + '.json', 'w')
             outfile.write(json.dumps(manifest))
             outfile.close()
@@ -44,11 +44,13 @@ def main():
     bibs.close()
 
 def build_law_metadata(file_list, record, identifier):
-    #gather metadata
+    # gather metadata
     title = record.title()
     attribution = "Though the copyright interests have not been transferred to Boston College, all of the items in the " \
                   "collection are in the public domain."
-    date = record.pubyear()
+    publication_year = record.pubyear()
+    date = publication_year if publication_year is not None else ''
+
     room = record['510']['a']
     if record['510']['c'] is not None:
         room = str(record['510']['a']) + " " + str(record['510']['c'])
@@ -66,7 +68,9 @@ def build_burns_metadata(file_list, record, identifier):
     title = record.title()
     attribution = "Though the copyright interests have not been transferred to Boston College, all of the items in the " \
                   "collection are in the public domain."
-    date = record.pubyear()
+    publication_year = record.pubyear()
+    date = publication_year if publication_year is not None else ''
+
     citation = title + ", " + date + ", " + ", John J. Burns Library, Boston College, http://hdl.handle.net/2345.2/" \
                + identifier + "."
     # build all the json
