@@ -227,3 +227,5 @@ cython_debug/
 
 # MARC files.
 *.mrc
+
+.idea
