@@ -11,23 +11,33 @@ from datetime import datetime
 from pymarc import MARCReader, Field
 import requests
 import sys
+import argparse
+import getpass
 
 base_url = 'https://iiif.bc.edu/iiif/2/'
 
 
 def main():
+    # Die early if the Python version isn't up to snuff
     check_requirements()
 
-    hdl_create_statements = []
-    hdl_passwd = sys.argv[2]
+    # Get command line args. Prompt the user for a Handle password if they haven't entered one.
+    args = get_arguments()
+    hdl_passwd = args.handle_passwd if args.handle_passwd else getpass.getpass('Handle server password:')
 
-    with open(sys.argv[1], 'rb') as bibs:
+    hdl_create_statements = []
+
+    with open(args.filename, 'rb') as bibs:
         reader = MARCReader(bibs)
         # initial for-loop lets you process a collection with multiple records if necessary
         for record in reader:
-            # gather file / record identifiers
+
+            # Determine the identifier to use for file URIs. This is usually the MMS, but give users the option
+            # to specify an alternative.
             long_identifier = str(record['001'])
-            identifier = long_identifier[6:len(long_identifier)]
+            mms = long_identifier[6:len(long_identifier)]
+            identifier = args.image_base if args.image_base else mms
+
             # create a list  of jp2s in the jp2 directory that contain the identifier for the record in question
             # this list gets passed into the json building functions.
             file_list = []
@@ -51,10 +61,20 @@ def main():
             view = build_view(identifier, record)
             write_view_file(identifier, view)
 
-            hdl_create_statements.append(build_handles(identifier, hdl_passwd))
+            hdl_create_statements.append(build_handles(identifier, hdl_passwd, mms))
+
     bibs.close()
 
     write_hdl_batchfile(hdl_create_statements)
+
+
+def get_arguments():
+    parser = argparse.ArgumentParser(prog='python manifest.py', add_help=True)
+    parser.add_argument('--image_base', help='base name of the image file')
+    parser.add_argument('--handle_passwd', help='Handle server password')
+    parser.add_argument('filename', help='name of the marc file')
+    args = parser.parse_args()
+    return args
 
 
 def write_view_file(identifier, view):
@@ -201,11 +221,11 @@ def build_view(identifier, record):
     return blob
 
 
-def build_handles(identifier, hdl_password):
+def build_handles(identifier, hdl_password, mms: str):
     return f'CREATE 2345.2/{identifier}\n' \
            f'100 HS_ADMIN 86400 1110 ADMIN 300:111111111111:2345.2/{identifier}\n' \
            f'300 HS_SECKEY 86400 1100 UTF8 {hdl_password}\n' \
-           f'201 URL 86400 1110 UTF8 https://bclib.bc.edu/libsearch/bc/mms/{identifier}\n'
+           f'201 URL 86400 1110 UTF8 https://bclib.bc.edu/libsearch/bc/mms/{mms}\n'
 
 
 def check_requirements():
