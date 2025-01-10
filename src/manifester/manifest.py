@@ -1,7 +1,7 @@
 # this script takes a binary MARC file and a folder full of JP2s to produce a IIIF-compliant JSON manifest
 # usage: |manifest.py records.mrc hdl_passwd| where records.mrc is a binary marc file containing bibliographic records
 # for the items for which you're creating manifests and hdl_passwd is the Handle password. This script must be run from
-# within a folder containing all of the relevant images formatted as JP2s, and the images must also be uploaded to the
+# within a folder containing all the relevant images formatted as JP2s, and the images must also be uploaded to the
 # library IIIF server before running the script.
 
 import json
@@ -69,7 +69,7 @@ def main():
 
 
 def get_arguments():
-    parser = argparse.ArgumentParser(prog='python manifest.py', add_help=True)
+    parser = argparse.ArgumentParser(prog='manifester', add_help=True)
     parser.add_argument('--image_base', help='base name of the image file')
     parser.add_argument('--handle_passwd', help='Handle server password')
     parser.add_argument('filename', help='name of the marc file')
@@ -232,6 +232,3 @@ def check_requirements():
     # Uses Literal String Interpolation, available only in Python 3.6+
     if sys.version_info < (3, 6):
         raise Exception('Requires python 3.6 or higher')
-
-
-main()

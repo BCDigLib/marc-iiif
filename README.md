@@ -7,17 +7,19 @@ This script exists as a counterpart to the ruby gem stored in BCDIgLib/aspaceiii
 To install
 
 ```shell
-pip install -r requirements.txt
+pip install --upgrade setuptools
+python -m pip install .
 ```
 
 # Usage
 
-To generate views and manifests for MARC records in a binary MARC record called *records.mrc* and Handle service 
-password `handle_password`:
+To generate views and manifests for MARC records in a binary MARC record called *records.mrc*:
 
 ```shell
-python manifest.py records.mrc handle_password
+manifester records.mrc
 ```
+
+Check the manifester help (`manifester -h`) for additional options.
 
 # Instructions
 
