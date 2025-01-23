@@ -6,13 +6,14 @@ build-backend = "setuptools.build_meta"
 name = "manifester"
 version = "0.0.1"
 dependencies = [
-    'certifi == 2024.7.4',
-    'charset-normalizer == 2.0.12',
-    'idna == 3.7',
-    'requests == 2.27.1',
-    'urllib3 == 1.26.9',
-    'pymarc ~= 5.2.2'
+    'certifi ~= 2024.7.4',
+    'charset-normalizer ~= 2.0.12',
+    'idna ~= 3.7',
+    'requests ~= 2.27.1',
+    'urllib3 ~= 1.26.9',
+    'pymarc ~= 5.2.2',
+    'paramiko ~= 3.5.0'
 ]
 
 [project.scripts]
-manifester = "manifester.manifest:main"
+manifester = "manifester.manifester:main"

@@ -1,11 +1,8 @@
-# this script takes a binary MARC file and a folder full of JP2s to produce a IIIF-compliant JSON manifest
-# usage: |manifest.py records.mrc hdl_passwd| where records.mrc is a binary marc file containing bibliographic records
-# for the items for which you're creating manifests and hdl_passwd is the Handle password. This script must be run from
-# within a folder containing all the relevant images formatted as JP2s, and the images must also be uploaded to the
-# library IIIF server before running the script.
+"""
+Produce a IIIF-compliant JSON manifest from a binary MARC file and a folder full of JP2s
+"""
 
 import json
-import os
 from datetime import datetime
 
 from pymarc import MARCReader, Field
@@ -13,21 +10,61 @@ import requests
 import sys
 import argparse
 import getpass
+import glob
 
 base_url = 'https://iiif.bc.edu/iiif/2/'
 
 
 def main():
+    """
+    Main process
+    """
+
     # Die early if the Python version isn't up to snuff
     check_requirements()
 
-    # Get command line args. Prompt the user for a Handle password if they haven't entered one.
-    args = get_arguments()
-    hdl_passwd = args.handle_passwd if args.handle_passwd else getpass.getpass('Handle server password:')
+    # Get command line args. We'll prompt the user for a Handle password if they haven't entered one.
+    parser = argparse.ArgumentParser(prog='manifester', add_help=True, description=__doc__)
+    parser.add_argument('--image_base', help='image file prefix (e.g. ms-2020-020-142452)')
+    parser.add_argument('--handle_passwd', help='Handle server password')
+    parser.add_argument('--image_dir', help='local directory containing JP2 files')
+    parser.add_argument('--ssh', help='IIIF server SSH connection string (ex. florinb@scenery.bc.edu)')
+    parser.add_argument('marc_file', help='name of the marc file')
+    args = parser.parse_args()
 
+    # Build a connection for SFTPing files if they entered an SSH connection string.
+    if args.ssh:
+        remote_dir = SSHConnection(args.ssh, '/opt/cantaloupe/images')
+    else:
+        remote_dir = None
+
+    # List the local image files, if requested. If they just provided SSH credentials, look
+    # for the images on that server.
+    if args.image_dir:
+        glob_pattern = f'{args.image_dir}/{args.image_base}*jp2'
+        image_files = glob.glob(glob_pattern)
+    elif remote_dir:
+        image_files = remote_dir.list_images(args.image_base)
+    else:
+        # @todo get a list of files directly from Cantaloupe
+        image_files = []
+    image_files.sort()
+
+    process_marc_file(args, image_files)
+
+
+def process_marc_file(args, image_files: list[str]) -> None:
+    """
+    Process the MARC file and do the stuff
+
+    :param args: dict the command line arguments
+    :param image_files: list[str] the list of image filenames to process
+    :return: None
+    """
+    hdl_passwd = args.handle_passwd if args.handle_passwd else getpass.getpass('Handle server password:')
     hdl_create_statements = []
 
-    with open(args.filename, 'rb') as bibs:
+    with open(args.marc_file, 'rb') as bibs:
         reader = MARCReader(bibs)
         # initial for-loop lets you process a collection with multiple records if necessary
         for record in reader:
@@ -38,21 +75,11 @@ def main():
             mms = long_identifier[6:len(long_identifier)]
             identifier = args.image_base if args.image_base else mms
 
-            # create a list  of jp2s in the jp2 directory that contain the identifier for the record in question
-            # this list gets passed into the json building functions.
-            file_list = []
-            for file in os.listdir('jp2s/'):
-                if identifier in file:
-                    file_list.append(file)
-            # this list will be unordered, so sort it
-            file_list.sort()
-            # figure out which library it's from and route it to the proper function
-
             try:
-                manifest = build_law_metadata(file_list, record, identifier) if "BCLL RBR" in record['510'][
-                    'a'] else build_burns_metadata(file_list, record, identifier)
+                manifest = build_law_metadata(image_files, record, identifier) if "BCLL RBR" in record['510'][
+                    'a'] else build_burns_metadata(image_files, record, identifier)
             except KeyError:
-                manifest = build_burns_metadata(file_list, record, identifier)
+                manifest = build_burns_metadata(image_files, record, identifier)
 
             # add if statement to look for cartographic records, determined by an 'e' in the 6th position of the LDR
 
@@ -68,16 +95,14 @@ def main():
     write_hdl_batchfile(hdl_create_statements)
 
 
-def get_arguments():
-    parser = argparse.ArgumentParser(prog='manifester', add_help=True)
-    parser.add_argument('--image_base', help='base name of the image file')
-    parser.add_argument('--handle_passwd', help='Handle server password')
-    parser.add_argument('filename', help='name of the marc file')
-    args = parser.parse_args()
-    return args
+def write_view_file(identifier: str, view: str) -> None:
+    """
+    Write a single view file
 
-
-def write_view_file(identifier, view):
+    :param identifier: str the identifier
+    :param view: str the view file contents
+    :return: None
+    """
     view_file = open('view/' + identifier, 'w')
     view_file.write(view)
     view_file.close()
@@ -97,7 +122,15 @@ def write_hdl_batchfile(hdl_create_statements):
     hdl_out.close()
 
 
-def build_law_metadata(file_list, record, identifier):
+def build_law_metadata(file_list: list[str], record: object, identifier: str) -> dict:
+    """
+    Build IIIF metadata for a Law Library MARC record
+
+    :param file_list: list[str] the list of image file names to process
+    :param record: object the MARC record
+    :param identifier: str the identifier from the MARC record
+    :return: dict
+    """
     # gather metadata
     title = record.title
     attribution = "Though the copyright interests have not been transferred to Boston College, all of the items in the " \
@@ -124,6 +157,14 @@ def build_law_metadata(file_list, record, identifier):
 
 
 def build_burns_metadata(file_list, record, identifier):
+    """
+    Build IIIF metadata for a non-Law MARC record
+
+    :param file_list: list[str] the list of image file names to process
+    :param record: object the MARC record
+    :param identifier: str the identifier from the MARC record
+    :return: dict
+    """
     # gather metadata
     print(type(record))
     print(record)
@@ -151,7 +192,13 @@ def build_burns_metadata(file_list, record, identifier):
 # eventually need to add a new function, build_cartographic_metadata. Information on metadata formatting to be provided
 # by Burns Public Services.
 
-def build_sequence(file_list):
+def build_sequence(file_list) -> list[dict]:
+    """
+    Build a IIIF sequence
+
+    :param file_list: the list of image files to process
+    :return: list[dict]
+    """
     sequence = [{'@type': 'sc:Sequence', 'canvases': []}]
     for file in file_list:
         short_name = file[0:file.index('.')]
@@ -185,6 +232,12 @@ def build_sequence(file_list):
 
 
 def build_structures(file_list):
+    """
+    Build the IIIF structures
+
+    :param file_list: the list of image files to process
+    :return: list[dict]
+    """
     structures = []
     index = 0
     for file in file_list:
@@ -199,7 +252,14 @@ def build_structures(file_list):
     return structures
 
 
-def build_view(identifier, record):
+def build_view(identifier: str, record: object):
+    """
+    Build view file text
+
+    :param identifier: str the identifier
+    :param record: object the MARC record
+    :return:str the text of the view file
+    """
     title = record.title
     blob = '<!DOCTYPE html>\n<html>\n<head>\n<script async src="https://www.googletagmanager.com/gtag/js?id=UA-3008279-23"></script>' \
            '\n<script src="/iiif/bc-mirador/gtag.js"></script>\n<title>' + identifier + '</title>\n' \
@@ -222,6 +282,14 @@ def build_view(identifier, record):
 
 
 def build_handles(identifier, hdl_password, mms: str):
+    """
+    Build Handle bulk file
+
+    :param identifier: str the identifier
+    :param hdl_password: str the Handle server password
+    :param mms: str the MMS number of the MARC record
+    :return: str the text of the Hanlde bulk file
+    """
     return f'CREATE 2345.2/{identifier}\n' \
            f'100 HS_ADMIN 86400 1110 ADMIN 300:111111111111:2345.2/{identifier}\n' \
            f'300 HS_SECKEY 86400 1100 UTF8 {hdl_password}\n' \
@@ -229,6 +297,11 @@ def build_handles(identifier, hdl_password, mms: str):
 
 
 def check_requirements():
+    """
+    Throw an error if something is amiss
+
+    :return: None
+    """
     # Uses Literal String Interpolation, available only in Python 3.6+
     if sys.version_info < (3, 6):
         raise Exception('Requires python 3.6 or higher')
