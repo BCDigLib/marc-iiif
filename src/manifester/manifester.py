@@ -12,6 +12,11 @@ import argparse
 import getpass
 import glob
 
+from manifester.alma_record import AlmaRecord
+from manifester.source_record import SourceRecord
+from ssh_connection import SSHConnection
+from orig_marc_record import ORIGMARCRecord
+
 base_url = 'https://iiif.bc.edu/iiif/2/'
 
 
@@ -19,7 +24,6 @@ def main():
     """
     Main process
     """
-
     # Die early if the Python version isn't up to snuff
     check_requirements()
 
@@ -50,42 +54,24 @@ def main():
         image_files = []
     image_files.sort()
 
-    process_marc_file(args, image_files)
-
-
-def process_marc_file(args, image_files: list[str]) -> None:
-    """
-    Process the MARC file and do the stuff
-
-    :param args: dict the command line arguments
-    :param image_files: list[str] the list of image filenames to process
-    :return: None
-    """
     hdl_passwd = args.handle_passwd if args.handle_passwd else getpass.getpass('Handle server password:')
     hdl_create_statements = []
 
     with open(args.marc_file, 'rb') as bibs:
         reader = MARCReader(bibs)
         # initial for-loop lets you process a collection with multiple records if necessary
-        for record in reader:
+        for source_record in reader:
+            marc_record = ORIGMARCRecord(source_record)
+            source_record = AlmaRecord(source_record)
 
-            # Determine the identifier to use for file URIs. This is usually the MMS, but give users the option
-            # to specify an alternative.
-            long_identifier = str(record['001'])
-            mms = long_identifier[6:len(long_identifier)]
-            identifier = args.image_base if args.image_base else mms
+            # Use an identifier from the record unless the user has specified something else.
+            identifier = args.image_base if args.image_base else source_record.identifier
 
-            try:
-                manifest = build_law_metadata(image_files, record, identifier) if "BCLL RBR" in record['510'][
-                    'a'] else build_burns_metadata(image_files, record, identifier)
-            except KeyError:
-                manifest = build_burns_metadata(image_files, record, identifier)
-
-            # add if statement to look for cartographic records, determined by an 'e' in the 6th position of the LDR
+            manifest = build_manifest(image_files, source_record)
 
             write_manifest_file(identifier, manifest)
 
-            view = build_view(identifier, record)
+            view = build_view(identifier, source_record)
             write_view_file(identifier, view)
 
             hdl_create_statements.append(build_handles(identifier, hdl_passwd, mms))
@@ -122,75 +108,21 @@ def write_hdl_batchfile(hdl_create_statements):
     hdl_out.close()
 
 
-def build_law_metadata(file_list: list[str], record: object, identifier: str) -> dict:
-    """
-    Build IIIF metadata for a Law Library MARC record
-
-    :param file_list: list[str] the list of image file names to process
-    :param record: object the MARC record
-    :param identifier: str the identifier from the MARC record
-    :return: dict
-    """
-    # gather metadata
-    title = record.title
+def build_manifest(file_list: list[str], source: SourceRecord) -> dict:
     attribution = "Though the copyright interests have not been transferred to Boston College, all of the items in the " \
                   "collection are in the public domain."
-    publication_year = record.pubyear
-    date = publication_year if publication_year is not None else ''
-
-    room = record['510']['a']
-    if record['510']['c'] is not None:
-        room = str(record['510']['a']) + " " + str(record['510']['c'])
-    citation = str(title) + ", " + str(
-        date) + ", " + room + ", Daniel R. Coquillette Rare Book Room, Boston College Law Library, http://hdl.handle.net/2345.2/" + identifier + "."
     # build all the json
-    blob = {'@context': 'http://iiif.io/api/presentation/2/context.json',
-            '@id': 'https://library.bc.edu/iiif/manifests/'
-                   + identifier + '.json', '@type': 'sc:Manifest', 'label': str(title),
-            'thumbnail': base_url + identifier
-                         + '_0001.jp2/full/!200,200/0/default.jpg', 'viewingHint': 'paged', 'attribution': attribution,
-            'metadata': [
-                {'handle': 'http://hdl.handle.net/2345.2/' + identifier},
-                {'label': 'Preferred Citation', 'value': citation}],
-            'sequences': build_sequence(file_list), 'structures': build_structures(file_list)}
-    return blob
-
-
-def build_burns_metadata(file_list, record, identifier):
-    """
-    Build IIIF metadata for a non-Law MARC record
-
-    :param file_list: list[str] the list of image file names to process
-    :param record: object the MARC record
-    :param identifier: str the identifier from the MARC record
-    :return: dict
-    """
-    # gather metadata
-    print(type(record))
-    print(record)
-    title = record.title
-    attribution = "Though the copyright interests have not been transferred to Boston College, all of the items in the " \
-                  "collection are in the public domain."
-    publication_year = record.pubyear
-    date = publication_year if publication_year is not None else ''
-
-    citation = title + ", " + date + ", " + ", John J. Burns Library, Boston College, http://hdl.handle.net/2345.2/" \
-               + identifier + "."
-    # build all the json
-    blob = {'@context': 'http://iiif.io/api/presentation/2/context.json',
+    return {'@context': 'http://iiif.io/api/presentation/2/context.json',
             '@id': 'https://library.bc.edu/iiif/manifests/'
                    + identifier + '.json', '@type': 'sc:Manifest', 'label': title,
             'thumbnail': base_url + identifier
-                         + '_0001.jp2/full/!200,200/0/default.jpg', 'viewingHint': 'paged', 'attribution': attribution,
+                         + '_0001.jp2/full/!200,200/0/default.jpg', 'viewingHint': 'paged',
+            'attribution': attribution,
             'metadata': [
                 {'handle': '"http://hdl.handle.net/2345.2/' + identifier},
                 {'label': 'Preferred Citation', 'value': citation}],
             'sequences': build_sequence(file_list), 'structures': build_structures(file_list)}
-    return blob
 
-
-# eventually need to add a new function, build_cartographic_metadata. Information on metadata formatting to be provided
-# by Burns Public Services.
 
 def build_sequence(file_list) -> list[dict]:
     """
