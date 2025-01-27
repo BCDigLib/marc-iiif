@@ -13,6 +13,7 @@ import getpass
 import glob
 
 from manifester.alma_record import AlmaRecord
+from manifester.image import Image
 from manifester.source_record import SourceRecord
 from ssh_connection import SSHConnection
 from orig_marc_record import ORIGMARCRecord
@@ -227,6 +228,18 @@ def build_handles(identifier, hdl_password, mms: str):
            f'300 HS_SECKEY 86400 1100 UTF8 {hdl_password}\n' \
            f'201 URL 86400 1110 UTF8 https://bclib.bc.edu/libsearch/bc/mms/{mms}\n'
 
+
+def build_image_list(image_filenames: list[str]) -> list[Image]:
+    images = []
+
+    for filename in image_filenames:
+        short_name = file[0:file.index('.')]
+        counter = short_name[len(short_name) - 4:len(short_name)]
+        cui = short_name[0:len(short_name) - 5]
+        url = base_url + file + '/info.json'
+        print(url)
+        call = requests.get(url)
+        info = call.json()
 
 def check_requirements():
     """

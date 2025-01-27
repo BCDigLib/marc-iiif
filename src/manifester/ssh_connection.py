@@ -29,11 +29,6 @@ class SSHConnection:
 
         self.image_dir = image_dir
 
-    def __del__(self):
-        """
-        Destructor
-        """
-        self.sftp.close()
 
     def upload_images(self, local_filepaths: list[str]) -> None:
         """
@@ -57,4 +52,5 @@ class SSHConnection:
         for file in files:
             if fnmatch.fnmatch(file, f'{image_base}*jp2'):
                 image_files.append(file)
+        image_files.sort()
         return image_files
