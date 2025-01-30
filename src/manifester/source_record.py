@@ -28,4 +28,4 @@ class SourceRecord(ABC):
 
     @property
     def handle_url(self) -> str:
-        return f'http://hdl.handle.net/2345.2/{source.identifier}'
+        return f'http://hdl.handle.net/2345.2/{self.identifier}'

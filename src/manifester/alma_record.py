@@ -31,7 +31,7 @@ class AlmaRecord(SourceRecord):
 
         :return: str
         """
-        long_identifier = str(record['001'])
+        long_identifier = str(self.record['001'])
         return long_identifier[6:len(long_identifier)]
 
     @property
@@ -61,7 +61,10 @@ class AlmaRecord(SourceRecord):
         """
 
         # No 510 (source location)? It's at Burns.
-        if self.record['510'] is None or self.record['510']['a'] is None:
+        try:
+            if self.record['510'] is None or self.record['510']['a'] is None:
+                return burns_citation(self.title, self.publication_year, self.identifier)
+        except KeyError:
             return burns_citation(self.title, self.publication_year, self.identifier)
 
         # 510 doesn't say it's at Law? It's at Burns
