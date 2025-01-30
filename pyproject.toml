@@ -12,8 +12,14 @@ dependencies = [
     'requests ~= 2.27.1',
     'urllib3 ~= 1.26.9',
     'pymarc ~= 5.2.2',
-    'paramiko ~= 3.5.0'
+    'paramiko ~= 3.5.0',
+    'pytest ~= 8.3.4'
 ]
 
 [project.scripts]
 manifester = "manifester.manifester:main"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]

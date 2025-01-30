@@ -54,6 +54,11 @@ class AlmaRecord(SourceRecord):
 
     @property
     def citation(self) -> str:
+        """
+        Citation for this item
+
+        :return: str a formatted citation
+        """
 
         # No 510 (source location)? It's at Burns.
         if self.record['510'] is None or self.record['510']['a'] is None:

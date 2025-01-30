@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-3008279-23"></script>
+    <script src="/iiif/bc-mirador/gtag.js"></script>
+    <title>__RECORD_IDENTIFIER__</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="/iiif/build/mirador/css/mirador-combined.css"></link>
+    <link rel="stylesheet" type="text/css" href="/iiif/bc-mirador/mirador-bc.css"></link>
+    <link rel="stylesheet" type="text/css" href="/iiif/bc-mirador/slicknav.css"></link>
+    <script type="text/javascript" src="/iiif/build/mirador/mirador.js"></script>
+    <script type="text/javascript" src="/iiif/bc-mirador/jquery.slicknav.min.js"></script>
+    <script type="text/javascript" src="/iiif/bc-mirador/downloadMenu.js"></script>
+</head>
+<body>
+<div id="viewer"></div>
+<script type="text/javascript">
+    window.mdObj = {
+        MIRADOR_DATA: [{
+            "manifestUri": "https://library.bc.edu/iiif/manifests/__RECORD_IDENTIFIER__.json",
+            "location": "Boston College",
+            "title": "__RECORD_TITLE__"
+        }],
+        MIRADOR_WOBJECTS: [{
+            "canvasID": "https://iiif.bc.edu/iiif/2/__RECORD_IDENTIFIER__/canvas/1021",
+            "loadedManifest": "https://library.bc.edu/iiif/manifests/__RECORD_IDENTIFIER__.json",
+            "viewType": "ImageView"
+        }],
+        MIRADOR_BUTTONS: [{
+            "label": "View Library Record",
+            "iconClass": "fa fa-external-link",
+            "attributes": {
+                "class": "handle",
+                "href": "http://hdl.handle.net/2345.2/__RECORD_IDENTIFIER__",
+                "target": "_blank"
+            }
+        }]
+    };
+</script>
+<script type="text/javascript" src="/iiif/bc-mirador/bcViewer.js"></script>
+</body>
+</html>

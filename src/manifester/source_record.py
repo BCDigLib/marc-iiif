@@ -21,3 +21,11 @@ class SourceRecord(ABC):
     @abstractmethod
     def citation(self) -> str:
         pass
+
+    @property
+    def manifest_url(self) -> str:
+        return f'https://library.bc.edu/iiif/manifests/{self.identifier}.json'
+
+    @property
+    def handle_url(self) -> str:
+        return f'http://hdl.handle.net/2345.2/{source.identifier}'

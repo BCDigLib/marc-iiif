@@ -16,7 +16,6 @@ from manifester.alma_record import AlmaRecord
 from manifester.image import Image
 from manifester.source_record import SourceRecord
 from ssh_connection import SSHConnection
-from orig_marc_record import ORIGMARCRecord
 
 base_url = 'https://iiif.bc.edu/iiif/2/'
 
@@ -47,22 +46,25 @@ def main():
     # for the images on that server.
     if args.image_dir:
         glob_pattern = f'{args.image_dir}/{args.image_base}*jp2'
-        image_files = glob.glob(glob_pattern)
+        image_filenames = glob.glob(glob_pattern)
     elif remote_dir:
-        image_files = remote_dir.list_images(args.image_base)
+        image_filenames = remote_dir.list_images(args.image_base)
     else:
         # @todo get a list of files directly from Cantaloupe
-        image_files = []
-    image_files.sort()
+        image_filenames = []
+    image_filenames.sort()
+
+    images = [Image(filename) for filename in image_filenames]
 
     hdl_passwd = args.handle_passwd if args.handle_passwd else getpass.getpass('Handle server password:')
     hdl_create_statements = []
+
+    source_record = None
 
     with open(args.marc_file, 'rb') as bibs:
         reader = MARCReader(bibs)
         # initial for-loop lets you process a collection with multiple records if necessary
         for source_record in reader:
-            marc_record = ORIGMARCRecord(source_record)
             source_record = AlmaRecord(source_record)
 
             # Use an identifier from the record unless the user has specified something else.
@@ -109,82 +111,6 @@ def write_hdl_batchfile(hdl_create_statements):
     hdl_out.close()
 
 
-def build_manifest(file_list: list[str], source: SourceRecord) -> dict:
-    attribution = "Though the copyright interests have not been transferred to Boston College, all of the items in the " \
-                  "collection are in the public domain."
-    # build all the json
-    return {'@context': 'http://iiif.io/api/presentation/2/context.json',
-            '@id': 'https://library.bc.edu/iiif/manifests/'
-                   + identifier + '.json', '@type': 'sc:Manifest', 'label': title,
-            'thumbnail': base_url + identifier
-                         + '_0001.jp2/full/!200,200/0/default.jpg', 'viewingHint': 'paged',
-            'attribution': attribution,
-            'metadata': [
-                {'handle': '"http://hdl.handle.net/2345.2/' + identifier},
-                {'label': 'Preferred Citation', 'value': citation}],
-            'sequences': build_sequence(file_list), 'structures': build_structures(file_list)}
-
-
-def build_sequence(file_list) -> list[dict]:
-    """
-    Build a IIIF sequence
-
-    :param file_list: the list of image files to process
-    :return: list[dict]
-    """
-    sequence = [{'@type': 'sc:Sequence', 'canvases': []}]
-    for file in file_list:
-        short_name = file[0:file.index('.')]
-        counter = short_name[len(short_name) - 4:len(short_name)]
-        cui = short_name[0:len(short_name) - 5]
-        url = base_url + file + '/info.json'
-        print(url)
-        call = requests.get(url)
-        info = call.json()
-        try:
-            height = info['height']
-            width = info['width']
-            blob = {'@id': base_url + cui + '/canvas/' + counter, '@type': 'sc:Canvas',
-                    'label': short_name, 'width': width,
-                    'height': height, 'images': [{'@id': base_url + cui + '/' + counter + '/annotation/1',
-                                                  '@type': 'oa:Annotation',
-                                                  'on': base_url + cui + '/canvas/' + counter,
-                                                  'motivation': 'sc:painting',
-                                                  'resource': {
-                                                      '@id': base_url + file + '/full/full/0/default.jpg',
-                                                      '@type': 'dctypes:Image',
-                                                      'format': 'image/jpeg', 'width': width, 'height': height,
-                                                      'service': {'@context': 'http://iiif.io/api/image/2/context.json',
-                                                                  '@id': base_url + file,
-                                                                  'profile': 'http://iiif.io/api/image/2/level2.json'}}}]}
-            sequence[0]['canvases'].append(blob)
-        except KeyError:
-            print(file + ' is not on the server or the server is otherwise not responding as expected.')
-            continue
-    return sequence
-
-
-def build_structures(file_list):
-    """
-    Build the IIIF structures
-
-    :param file_list: the list of image files to process
-    :return: list[dict]
-    """
-    structures = []
-    index = 0
-    for file in file_list:
-        short_name = file[0:file.index('.')]
-        counter = short_name[len(short_name) - 4:len(short_name)]
-        cui = short_name[0:len(short_name) - 5]
-        blob = {'@id': base_url + cui + '/range/r-' + str(index), '@type': 'sc:Range',
-                'label': short_name,
-                'canvases': [base_url + cui + '/canvas/' + counter]}
-        index += 1
-        structures.append(blob)
-    return structures
-
-
 def build_view(identifier: str, record: object):
     """
     Build view file text
@@ -193,25 +119,12 @@ def build_view(identifier: str, record: object):
     :param record: object the MARC record
     :return:str the text of the view file
     """
-    title = record.title
-    blob = '<!DOCTYPE html>\n<html>\n<head>\n<script async src="https://www.googletagmanager.com/gtag/js?id=UA-3008279-23"></script>' \
-           '\n<script src="/iiif/bc-mirador/gtag.js"></script>\n<title>' + identifier + '</title>\n' \
-                                                                                        '<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' \
-                                                                                        '<link rel="stylesheet" type="text/css" href="/iiif/build/mirador/css/mirador-combined.css"></link>\n' \
-                                                                                        '<link rel="stylesheet" type="text/css" href="/iiif/bc-mirador/mirador-bc.css"></link>\n' \
-                                                                                        '<link rel="stylesheet" type="text/css" href="/iiif/bc-mirador/slicknav.css"></link>\n' \
-                                                                                        '<script type="text/javascript" src="/iiif/build/mirador/mirador.js"></script>\n' \
-                                                                                        '<script type="text/javascript" src="/iiif/bc-mirador/jquery.slicknav.min.js"></script>\n' \
-                                                                                        '<script type="text/javascript" src="/iiif/bc-mirador/downloadMenu.js"></script>\n' \
-                                                                                        '</head>\n<body>\n<div id="viewer"></div>\n<script type="text/javascript">\nwindow.mdObj = {MIRADOR_DATA: [' \
-                                                                                        '{"manifestUri": "https://library.bc.edu/iiif/manifests/' + identifier + '.json","location": "Boston College",' \
-                                                                                                                                                                 '"title":"' + title + '"}],MIRADOR_WOBJECTS: [{"canvasID": "' + base_url + identifier + '/canvas/0001",' \
-                                                                                                                                                                                                                                                         '"loadedManifest": "https://library.bc.edu/iiif/manifests/' + identifier + '.json","viewType": "ImageView"}],' \
-                                                                                                                                                                                                                                                                                                                                    'MIRADOR_BUTTONS: [{"label": "View Library Record","iconClass": "fa fa-external-link","attributes": {' \
-                                                                                                                                                                                                                                                                                                                                    '"class": "handle","href": "http://hdl.handle.net/2345.2/' + identifier + '","target": "_blank"}}]};\n' \
-                                                                                                                                                                                                                                                                                                                                                                                                              '</script>\n<script type="text/javascript" src="/iiif/bc-mirador/bcViewer.js"></script>\n' \
-                                                                                                                                                                                                                                                                                                                                                                                                              '</body>\n</html>'
-    return blob
+    # Build from an HTML template.
+    with open('view-template.html') as fh:
+        html = fh.read()
+    html = html.replace('__RECORD_TITLE__', record.title)
+    html = html.replace('__RECORD_IDENTIFIER__', identifier)
+    return html
 
 
 def build_handles(identifier, hdl_password, mms: str):
@@ -223,23 +136,14 @@ def build_handles(identifier, hdl_password, mms: str):
     :param mms: str the MMS number of the MARC record
     :return: str the text of the Hanlde bulk file
     """
-    return f'CREATE 2345.2/{identifier}\n' \
-           f'100 HS_ADMIN 86400 1110 ADMIN 300:111111111111:2345.2/{identifier}\n' \
-           f'300 HS_SECKEY 86400 1100 UTF8 {hdl_password}\n' \
-           f'201 URL 86400 1110 UTF8 https://bclib.bc.edu/libsearch/bc/mms/{mms}\n'
+    # Build from a text template.
+    with open('handle-template.txt') as fh:
+        hdl_text = fh.read()
+    hdl_text = hdl_text.replace('__RECORD_IDENTIFIER__', identifier)
+    hdl_text = hdl_text.replace('__RECORD_MMS__', mms)
+    hdl_text = hdl_text.replace('__HANDLE_PASSWORD__', hdl_password)
+    return hdl_text
 
-
-def build_image_list(image_filenames: list[str]) -> list[Image]:
-    images = []
-
-    for filename in image_filenames:
-        short_name = file[0:file.index('.')]
-        counter = short_name[len(short_name) - 4:len(short_name)]
-        cui = short_name[0:len(short_name) - 5]
-        url = base_url + file + '/info.json'
-        print(url)
-        call = requests.get(url)
-        info = call.json()
 
 def check_requirements():
     """
