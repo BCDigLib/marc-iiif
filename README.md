@@ -21,16 +21,6 @@ python -m pip install --editable .
 
 # Usage
 
-To generate views and manifests for MARC records in a binary MARC record called *records.mrc*:
-
-```shell
-manifester records.mrc
-```
-
-Check the manifester help (`manifester -h`) for additional options.
-
-# Instructions
-
 Make sure the JPEG2000 images have been uploaded to the IIIF server image and have the naming format
 _identifier_counter.jp2_, where _identifier_ is the identifier defined in the source record and _counter_ is a 4-digit 
 zero-padded string that indicates the position in the image sequence. 
@@ -57,6 +47,8 @@ The flags:
 * `--image_base` - the identifier portion of the image
 
 The final parameter is a source record containing metadata necessary to build the manifest.
+
+Check the manifester help (`manifester -h`) for additional options.
 
 ## Source formats
 
