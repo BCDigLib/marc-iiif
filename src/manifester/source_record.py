@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 
 
 class SourceRecord(ABC):
+    """
+    Abstract source record
+    """
     @property
     @abstractmethod
     def identifier(self) -> str:

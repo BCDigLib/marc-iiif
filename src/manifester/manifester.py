@@ -7,8 +7,6 @@ import os.path
 from datetime import datetime
 from time import sleep
 
-import tracemalloc
-
 from pymarc import MARCReader, Field
 import requests
 import sys
@@ -20,8 +18,6 @@ from manifester.image import Image
 from manifester.manifest_builder import build_manifest
 from manifester.ssh_connection import SSHConnection
 
-tracemalloc.start()
-
 base_url = 'https://iiif.bc.edu/iiif/2/'
 src_path = os.path.dirname(__file__)
 
@@ -32,7 +28,6 @@ def main():
     """
 
     print('Starting')
-    print('Objects tracked: ' + str(len(gc.get_objects())))
 
     # Die early if the Python version isn't up to snuff
     check_requirements()
@@ -51,7 +46,6 @@ def main():
         remote_dir = SSHConnection(args.ssh, '/opt/cantaloupe/images')
     else:
         remote_dir = None
-    print('Objects tracked: ' + str(len(gc.get_objects())))
 
     # List the local image files, if requested. If they just provided SSH credentials, look
     # for the images on that server.
@@ -76,21 +70,21 @@ def main():
         reader = MARCReader(bibs)
         # initial for-loop lets you process a collection with multiple records if necessary
         for source_record in reader:
-            source_record = AlmaRecord(source_record)
-            print(f'Found {source_record.identifier}. Building manifest...')
+            identifier = args.image_base if args.image_base else None
+            source_record = AlmaRecord(source_record, identifier=identifier)
 
-            # Use an identifier from the record unless the user has specified something else.
-            identifier = args.image_base if args.image_base else source_record.identifier
+            print(f'Found {source_record.identifier}. Building manifest...')
 
             manifest = build_manifest(images, source_record)
 
-            write_manifest_file(identifier, manifest)
+            write_manifest_file(source_record.identifier, manifest)
 
             print(f'Building view...')
-            view = build_view(identifier, source_record)
+            view = build_view(source_record.identifier, source_record)
             write_view_file(identifier, view)
 
-            hdl_create_statements.append(build_handles(identifier, hdl_passwd, mms))
+            print(f'Building handles...')
+            hdl_create_statements.append(build_handles(source_record.identifier, hdl_passwd, source_record.identifier))
 
     bibs.close()
 

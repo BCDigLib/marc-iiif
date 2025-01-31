@@ -3,6 +3,13 @@ from manifester.source_record import SourceRecord
 
 
 def build_manifest(image_list: list[Image], source: SourceRecord) -> dict:
+    """
+    Build the manifest
+
+    :param image_list: list[Image] the images to deliver
+    :param source: SourceRecord the source record
+    :return:
+    """
     attribution = "Though the copyright interests have not been transferred to Boston College, all of the items in the " \
                   "collection are in the public domain."
 
@@ -38,6 +45,12 @@ def build_manifest(image_list: list[Image], source: SourceRecord) -> dict:
 
 
 def build_canvas(image: Image):
+    """
+    Build a single sc:Canvas
+
+    :param image: Image the image contained in the Canvas
+    :return:
+    """
     return {
         '@id': image.canvas_url,
         '@type': 'sc:Canvas',
@@ -68,6 +81,12 @@ def build_canvas(image: Image):
 
 
 def build_structure(image: Image):
+    """
+    Build a single structure
+
+    :param image: Image the represented image
+    :return:
+    """
     return {
         '@id': image.range_url,
         '@type': 'sc:Range',
@@ -76,24 +95,3 @@ def build_structure(image: Image):
             image.canvas_url
         ]
     }
-
-
-def build_structures(image_list: list[Image]):
-    """
-    Build the IIIF structures
-
-    :param image_list: the list of image files to process
-    :return: list[dict]
-    """
-    structures = []
-    index = 0
-    for file in image_list:
-        short_name = file[0:file.index('.')]
-        counter = short_name[len(short_name) - 4:len(short_name)]
-        cui = short_name[0:len(short_name) - 5]
-        blob = {'@id': base_url + cui + '/range/r-' + str(index), '@type': 'sc:Range',
-                'label': short_name,
-                'canvases': [base_url + cui + '/canvas/' + counter]}
-        index += 1
-        structures.append(blob)
-    return structures

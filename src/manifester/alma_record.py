@@ -12,7 +12,7 @@ class AlmaRecord(SourceRecord):
     """
     record: Record
 
-    def __init__(self, record: Record):
+    def __init__(self, record: Record, identifier: str = None):
         """
         Constructor
 
@@ -20,17 +20,21 @@ class AlmaRecord(SourceRecord):
         :param record:
         """
         self.record = record
+        self._identifier = identifier if identifier else None
 
     @property
     def identifier(self) -> str:
         """
-        Get identifier (MMS)
+        Get identifier
 
-        When dealing with our MARC records, we usually use Alma's MMS as the identifier. That ID is found at the
-        beginning of the
+        When dealing with our MARC records, we usually use Alma's MMS as the identifier unless the user
+        specified a different identifier when creating the object
 
         :return: str
         """
+        if self._identifier:
+            return self._identifier
+
         long_identifier = str(self.record['001'])
         return long_identifier[6:len(long_identifier)]
 
