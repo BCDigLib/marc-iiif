@@ -47,8 +47,29 @@ class ASpaceLookup(SourceRecord):
             if date['label'] == 'creation:':
 
 
+
         return self.api_response['']
 
     @property
-    def citation(self) -> str:
-        pass
+    def citation(self) -> Optional[str]:
+        """
+        Return the text of the preferred citation
+
+        :return: Optional[str]
+        """
+        for note in self.api_response['notes']:
+            if note['type'] == 'prefercite':
+                return note['subnotes'][0]['content']
+        return None
+
+    @property
+    def attribution(self) -> Optional[str]:
+        """
+        Return the text of the usage restriction note
+
+        :return: Optional[str] text of the usage restriction, or None if it doesn't exist
+        """
+        for note in self.api_response['notes']:
+            if note['type'] == 'userestrict':
+                return note['subnotes'][0]['content']
+        return None

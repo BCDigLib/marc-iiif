@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 
 class SourceRecord(ABC):
@@ -21,9 +22,12 @@ class SourceRecord(ABC):
         pass
 
     @property
-    @abstractmethod
-    def citation(self) -> str:
-        pass
+    def citation(self) -> Optional[str]:
+        return None
+
+    @property
+    def attribution(self) -> Optional[str]:
+        return None
 
     @property
     def manifest_url(self) -> str:

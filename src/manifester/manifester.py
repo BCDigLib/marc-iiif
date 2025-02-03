@@ -1,11 +1,11 @@
 """
 Produce a IIIF-compliant JSON manifest from a binary MARC file and a folder full of JP2s
 """
-import gc
 import json
 import os.path
 from datetime import datetime
 from time import sleep
+from typing import Optional
 
 from pymarc import MARCReader, Field
 import requests
@@ -37,7 +37,7 @@ def main():
     parser.add_argument('--image_base', help='image file prefix (e.g. ms-2020-020-142452)')
     parser.add_argument('--handle_passwd', help='Handle server password')
     parser.add_argument('--ssh', help='IIIF server SSH connection string (ex. florinb@scenery.bc.edu)')
-    parser.add_argument('marc_file', help='name of the marc file')
+    parser.add_argument('source_record', help='the source record (MARC file, ASpace record, etc.) to process')
     args = parser.parse_args()
 
     print(f'Opening SSH connection...')
@@ -65,34 +65,48 @@ def main():
     hdl_passwd = args.handle_passwd if args.handle_passwd else getpass.getpass('Handle server password:')
     hdl_create_statements = []
 
-    print(f'Reading {args.marc_file}')
-    with open(args.marc_file, 'rb') as bibs:
-        reader = MARCReader(bibs)
-        # initial for-loop lets you process a collection with multiple records if necessary
-        for source_record in reader:
-            identifier = args.image_base if args.image_base else None
-            source_record = AlmaRecord(source_record, identifier=identifier)
+    print(f'Reading {args.source_record}')
 
-            print(f'Found {source_record.identifier}. Building manifest...')
+    # For now, anything that ends in '.mrc' is a binary MARC file, while everything else is a
+    # ASpace record.
+    # @todo figure out a better way to identify record types
+    if args.source_record.endswith('.mrc'):
+        source_record = read_marc_file(args.source_record, args.identifier)
+    else:
+        passwd =
+        source_record = fetch_aspace(args.source_record, args.identifier)
 
-            manifest = build_manifest(images, source_record)
+    print(f'Found {source_record.identifier}. Building manifest...')
+    manifest = build_manifest(images, source_record)
+    write_manifest_file(source_record.identifier, manifest)
 
-            write_manifest_file(source_record.identifier, manifest)
+    print(f'Building view...')
+    view = build_view(source_record.identifier, source_record)
+    write_view_file(source_record.identifier, view)
 
-            print(f'Building view...')
-            view = build_view(source_record.identifier, source_record)
-            write_view_file(identifier, view)
-
-            print(f'Building handles...')
-            hdl_create_statements.append(build_handles(source_record.identifier, hdl_passwd, source_record.identifier))
-
-    bibs.close()
+    print(f'Building handles...')
+    hdl_create_statements.append(build_handles(source_record.identifier, hdl_passwd, source_record.identifier))
 
     print('Writing handle...')
     write_hdl_batchfile(hdl_create_statements)
 
     print('Finished')
 
+
+def read_marc_file(marc_file: str, identifier: Optional[str]) -> AlmaRecord:
+    """
+    Extract the source file from a binary MARC record
+
+    :param marc_file: str full path to the MARC file
+    :param identifier: Optional[str] the records identifier; if None, the MMS will be used
+    :return: AlmaRecord the first record in the file
+    """
+    with open(marc_file, 'rb') as bibs:
+        reader = MARCReader(bibs)
+
+        # Get the first record
+        for source_record in reader:
+            return AlmaRecord(source_record, identifier=identifier)
 
 def build_image(filename: str):
     image = Image(filename)
@@ -143,7 +157,6 @@ def build_view(identifier: str, record: object):
     :return:str the text of the view file
     """
     # Build from an HTML template.
-    view_temlplate_file = os.path.dirname(__file__)
     with open(f'{src_path}/view-template.html') as fh:
         html = fh.read()
     html = html.replace('__RECORD_TITLE__', record.title)

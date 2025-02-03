@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pymarc import Record
 
 from manifester.citation import burns_citation, law_citation
@@ -57,7 +59,7 @@ class AlmaRecord(SourceRecord):
         return str(self.record.pubyear or "")
 
     @property
-    def citation(self) -> str:
+    def citation(self) -> Optional[str]:
         """
         Citation for this item
 
