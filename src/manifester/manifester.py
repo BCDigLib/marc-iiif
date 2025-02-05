@@ -14,6 +14,8 @@ import argparse
 import getpass
 
 from manifester.alma_record import AlmaRecord
+from manifester.aspace_client import lookup
+from manifester.aspace_lookup import ASpaceLookup
 from manifester.image import Image
 from manifester.manifest_builder import build_manifest
 from manifester.ssh_connection import SSHConnection
@@ -71,10 +73,11 @@ def main():
     # ASpace record.
     # @todo figure out a better way to identify record types
     if args.source_record.endswith('.mrc'):
-        source_record = read_marc_file(args.source_record, args.identifier)
+        source_record = read_marc_file(args.source_record, args.image_base)
     else:
-        passwd =
-        source_record = fetch_aspace(args.source_record, args.identifier)
+        aspace_password = getpass.getpass('ASpace API admin password:')
+        aspace_response = lookup(args.source_record, 'admin', aspace_password)
+        source_record = ASpaceLookup(aspace_response, args.image_base)
 
     print(f'Found {source_record.identifier}. Building manifest...')
     manifest = build_manifest(images, source_record)
@@ -111,6 +114,7 @@ def read_marc_file(marc_file: str, identifier: Optional[str]) -> AlmaRecord:
 def build_image(filename: str):
     image = Image(filename)
 
+    print(f'...fetching {image.info_url}')
     with requests.get(image.info_url) as response:
         info = response.json()
 

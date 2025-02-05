@@ -33,7 +33,6 @@ class ASpaceLookup(SourceRecord):
         # Otherwise, throw an error
         raise InsufficientSourceMetadataError('Did not find an identifier for record')
 
-
     @property
     def title(self) -> str:
         return self.api_response['title']
@@ -43,12 +42,16 @@ class ASpaceLookup(SourceRecord):
         if len(self.api_response['dates']) < 0:
             raise InsufficientSourceMetadataError('Record has no associated dates')
 
+        # If we find a creation date, use it to build a response.
         for date in self.api_response['dates']:
             if date['label'] == 'creation:':
+                if 'end' in date:
+                    return f'{date["begin"]}-{date["end"]}'
+                else:
+                    return str(date['begin'])
 
-
-
-        return self.api_response['']
+        # Default to empty string.
+        return ''
 
     @property
     def citation(self) -> Optional[str]:

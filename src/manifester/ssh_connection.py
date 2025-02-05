@@ -49,8 +49,9 @@ class SSHConnection:
         """
         files = self.sftp.listdir(self.image_dir)
         image_files = []
+        print(f'Looking for {image_base}.*')
         for file in files:
-            if fnmatch.fnmatch(file, f'{image_base}*jp2'):
+            if fnmatch.fnmatch(file, f'{image_base}*'):
                 image_files.append(file)
         image_files.sort()
         return image_files

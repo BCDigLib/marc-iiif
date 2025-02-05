@@ -1,6 +1,5 @@
 import os.path
 
-import requests
 from typing import Optional
 
 

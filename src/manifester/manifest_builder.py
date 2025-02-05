@@ -10,7 +10,6 @@ def build_manifest(image_list: list[Image], source: SourceRecord) -> dict:
     :param source: SourceRecord the source record
     :return:
     """
-    print(image_list[0])
 
     attribution = f'<p>{source.attribution}</p><p>Takedown notice: <a href="https://library.bc.edu/takedown-notice">https://library.bc.edu/takedown-notice</a></p>'
 
