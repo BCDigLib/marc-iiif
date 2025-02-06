@@ -9,6 +9,7 @@ from typing import Optional
 
 from pymarc import MARCReader, Field
 import requests
+import urllib3
 import sys
 import argparse
 import getpass
@@ -22,6 +23,8 @@ from manifester.ssh_connection import SSHConnection
 
 base_url = 'https://iiif.bc.edu/iiif/2/'
 src_path = os.path.dirname(__file__)
+
+http = urllib3.PoolManager()
 
 
 def main():
@@ -115,13 +118,13 @@ def build_image(filename: str):
     image = Image(filename)
 
     print(f'...fetching {image.info_url}')
-    with requests.get(image.info_url) as response:
-        info = response.json()
+    r = http.request('GET', image.info_url)
+    info = json.loads(r.data.decode('utf-8'))
 
     image.height = info['height']
     image.width = info['width']
     print(f'{image.short_name} - {image.height}x{image.width}')
-    sleep(.2)
+    sleep(.5)
     return image
 
 
