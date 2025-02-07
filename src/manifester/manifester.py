@@ -8,7 +8,6 @@ from time import sleep
 from typing import Optional
 
 from pymarc import MARCReader, Field
-import requests
 import urllib3
 import sys
 import argparse
@@ -41,6 +40,7 @@ def main():
     parser = argparse.ArgumentParser(prog='manifester', add_help=True, description=__doc__)
     parser.add_argument('--image_base', help='image file prefix (e.g. ms-2020-020-142452)')
     parser.add_argument('--handle_passwd', help='Handle server password')
+    parser.add_argument('--handle', help='Handle URL')
     parser.add_argument('--ssh', help='IIIF server SSH connection string (ex. florinb@scenery.bc.edu)')
     parser.add_argument('source_record', help='the source record (MARC file, ASpace record, etc.) to process')
     args = parser.parse_args()
@@ -82,12 +82,16 @@ def main():
         aspace_response = lookup(args.source_record, 'admin', aspace_password)
         source_record = ASpaceLookup(aspace_response, args.image_base)
 
+    # Determine handle.
+    handle = args.handle if args.handle else source_record.identifier
+    handle_url = f'http://hdl.handle.net/2345.2/{handle}'
+
     print(f'Found {source_record.identifier}. Building manifest...')
-    manifest = build_manifest(images, source_record)
+    manifest = build_manifest(images, source_record, handle_url)
     write_manifest_file(source_record.identifier, manifest)
 
     print(f'Building view...')
-    view = build_view(source_record.identifier, source_record)
+    view = build_view(source_record.identifier, source_record, handle_url)
     write_view_file(source_record.identifier, view)
 
     print(f'Building handles...')
@@ -113,6 +117,7 @@ def read_marc_file(marc_file: str, identifier: Optional[str]) -> AlmaRecord:
         # Get the first record
         for source_record in reader:
             return AlmaRecord(source_record, identifier=identifier)
+
 
 def build_image(filename: str):
     image = Image(filename)
@@ -155,19 +160,21 @@ def write_hdl_batchfile(hdl_create_statements):
     hdl_out.close()
 
 
-def build_view(identifier: str, record: object):
+def build_view(identifier: str, record: object, handle_url: str):
     """
     Build view file text
 
     :param identifier: str the identifier
     :param record: object the MARC record
     :return:str the text of the view file
+    :param handle_url: str the full URL of the handle
     """
     # Build from an HTML template.
     with open(f'{src_path}/view-template.html') as fh:
         html = fh.read()
     html = html.replace('__RECORD_TITLE__', record.title)
     html = html.replace('__RECORD_IDENTIFIER__', identifier)
+    html = html.replace('__HANDLE_URL__', handle_url)
     return html
 
 

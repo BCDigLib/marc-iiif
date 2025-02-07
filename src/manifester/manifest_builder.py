@@ -2,7 +2,7 @@ from manifester.image import Image
 from manifester.source_record import SourceRecord
 
 
-def build_manifest(image_list: list[Image], source: SourceRecord) -> dict:
+def build_manifest(image_list: list[Image], source: SourceRecord, handle_url: str) -> dict:
     """
     Build the manifest
 
@@ -24,11 +24,11 @@ def build_manifest(image_list: list[Image], source: SourceRecord) -> dict:
         'attribution': attribution,
         'metadata': [
             {
-                'handle': source.handle_url
+                'handle': handle_url
             },
             {
                 'label': 'Preferred Citation',
-                'value': source.citation + ' ' + source.handle_url
+                'value': source.citation + ' ' + handle_url
             }
 
         ],
