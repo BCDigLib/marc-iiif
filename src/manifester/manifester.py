@@ -10,6 +10,7 @@ from typing import Optional, List
 from pymarc import MARCReader
 import urllib3
 import sys
+import logging as log
 
 from manifester.alma_record import AlmaRecord
 from manifester.aspace_client import lookup
@@ -22,11 +23,16 @@ from manifester.ssh_connection import SSHConnection
 src_path = os.path.dirname(__file__)
 http = urllib3.PoolManager()
 
-print('Starting')
-
 # Load the input we need to finish the process from CLI args, env files, and possibly
 # user input during runtime.
 config = load_config()
+
+if config.verbosity:
+    log.basicConfig(format="%(levelname)s: %(message)s", level=config.verbosity)
+    log.info("Verbose output.")
+else:
+    log.basicConfig(format="%(levelname)s: %(message)s")
+
 
 def main():
     """
@@ -35,15 +41,14 @@ def main():
     check_requirements()
 
     # Build a connection for SFTPing files if they entered an SSH connection string.
-    print(f'Opening SSH connection...')
+    log.info(f'Opening SSH connection as {config.ssh}')
     if config.ssh:
         remote_dir = SSHConnection(config.ssh, config.image_dir)
     else:
         remote_dir = None
-
     # List the local image files, if requested. If they just provided SSH credentials, look
     # for the images on that server.
-    print(f'Globbing {config.ssh}{config.image_dir}/{config.image_base}...')
+    log.debug(f'Globbing {config.ssh}{config.image_dir}/{config.image_base}...')
     if remote_dir:
         image_filenames = remote_dir.list_images(config.image_base)
     else:
@@ -51,12 +56,12 @@ def main():
         image_filenames = []
     image_filenames.sort()
 
-    print(f'Found {len(image_filenames)} image files. Looking up dimensions...')
+    log.info(f'Found {len(image_filenames)} image files. Looking up dimensions...')
     images = []
     for filename in image_filenames:
         images.append(build_image(filename))
 
-    print(f'Reading {config.source_record}')
+    log.info(f'Reading {config.source_record}')
 
     # For now, anything that ends in '.mrc' is a binary MARC file, while everything else is a
     # ASpace record.
@@ -71,21 +76,19 @@ def main():
     handle = config.handle_url if config.handle_url else source_record.identifier
     handle_url = f'http://hdl.handle.net/2345.2/{handle}'
 
-    print(f'Found {source_record.identifier}. Building manifest...')
+    log.info(f'Found {source_record.identifier}. Building manifest...')
     manifest = build_manifest(images, source_record, handle_url)
     write_manifest_file(source_record.identifier, manifest)
 
-    print(f'Building view...')
+    log.info(f'Building view...')
     view = build_view(source_record.identifier, source_record, handle_url)
     write_view_file(source_record.identifier, view)
 
-    print(f'Building handles...')
+    log.info(f'Building handles...')
     hdl_create_statements = [build_handles(source_record.identifier, config.handle_passwd, source_record.identifier)]
 
-    print('Writing handle...')
+    log.info('Writing handle...')
     write_hdl_batchfile(hdl_create_statements)
-
-    print('Finished')
 
 
 def read_marc_file(marc_file: str, identifier: Optional[str]) -> AlmaRecord:
@@ -113,13 +116,13 @@ def build_image(filename: str) -> Image:
     """
     image = Image(filename, config.iiif_base_url)
 
-    print(f'...fetching {image.info_url}')
+    log.info(f'...fetching {image.info_url}')
     r = http.request('GET', image.info_url)
     info = json.loads(r.data.decode('utf-8'))
 
     image.height = info['height']
     image.width = info['width']
-    print(f'{image.short_name} - {image.height}x{image.width}')
+    log.info(f'{image.short_name} - {image.height}x{image.width}')
     sleep(.5)
     return image
 

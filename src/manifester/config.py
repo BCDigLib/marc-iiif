@@ -23,6 +23,7 @@ class Config:
     view_dir: str
     handle_dir: str
     image_dir: str
+    verbosity: int
 
 
 def load_config() -> Config:
@@ -39,6 +40,7 @@ def load_config() -> Config:
     config.image_base = args.image_base
     config.source_record = args.source_record
     config.handle_url = args.handle
+    config.verbosity = args.verbose
 
     # These must come from the env file.
     config.iiif_base_url = dotenv['IIIF_BASE_URL']
@@ -73,4 +75,5 @@ def get_args():
     parser.add_argument('--handle', help='Handle URL')
     parser.add_argument('--ssh', help='IIIF server SSH connection string (ex. florinb@scenery.bc.edu)')
     parser.add_argument('--image_dir', help='image directory on IIIF server')
+    parser.add_argument('-v', '--verbose', action='count', default=0)
     return parser.parse_args()
