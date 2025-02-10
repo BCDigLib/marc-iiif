@@ -9,13 +9,15 @@ To install
 ```shell
 pip install --upgrade setuptools
 python -m pip install .
+cp sample.env .env
 ```
+
+Then edit the .env configuration file as appropriate.
 
 If you want to modify the application, you can install it with the `--editable`
  option:
 
 ```shell
-pip install --upgrade setuptools
 python -m pip install --editable .
 ```
 
@@ -35,16 +37,24 @@ im-m057-2000_0004
 ...
 ```
 
-Then run the `manifester` command against a source record file:
+Then run the `manifester` command against a source record file.
+
+For a MARC file:
 
 ```commandline
 manifester --ssh my_user@scenery.bc.edu --image_base im-m057-2000 source_record.mrc 
 ```
 
+For an ASpace record, use the URL path for the record:
+
+```commandline
+manifester --ssh my_user@scenery.bc.edu --image_base im-m057-2000  /repositories/###/resources/### 
+```
+
 The flags:
 
-* `--ssh` - SSH credentials for a user who has access (using public key login) to the IIIF server
-* `--image_base` - the identifier portion of the image
+* `--image_base` - the identifier portion of the image __[required]__
+* `--ssh` - SSH credentials for a user who has access (using public key login) to the IIIF server.
 
 The final parameter is a source record containing metadata necessary to build the manifest.
 
@@ -55,5 +65,6 @@ Check the manifester help (`manifester -h`) for additional options.
 Currently supported source record formats:
 
 * binary MARC records
+* ArchivesSpace record URLs
 
 To add a new source record format, create a new class inheriting from the SourceRecord abstract class. 

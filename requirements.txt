@@ -6,3 +6,4 @@ urllib3==1.26.9
 pymarc~=5.2.2
 paramiko~=3.5.0
 pytest~=8.3.4
+python-dotenv~=1.0.1

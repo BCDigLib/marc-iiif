@@ -18,7 +18,7 @@ class Image:
     height: Optional[str]
     width: Optional[str]
 
-    def __init__(self, filepath: str, base_url: str = 'https://iiif.bc.edu/iiif/2'):
+    def __init__(self, filepath: str, base_url: str):
         """
         Constructor
 

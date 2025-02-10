@@ -5,58 +5,47 @@ import json
 import os.path
 from datetime import datetime
 from time import sleep
-from typing import Optional
+from typing import Optional, List
 
-from pymarc import MARCReader, Field
+from pymarc import MARCReader
 import urllib3
 import sys
-import argparse
-import getpass
 
 from manifester.alma_record import AlmaRecord
 from manifester.aspace_client import lookup
 from manifester.aspace_lookup import ASpaceLookup
+from manifester.config import load_config
 from manifester.image import Image
 from manifester.manifest_builder import build_manifest
 from manifester.ssh_connection import SSHConnection
 
-base_url = 'https://iiif.bc.edu/iiif/2/'
 src_path = os.path.dirname(__file__)
-
 http = urllib3.PoolManager()
 
+print('Starting')
+
+# Load the input we need to finish the process from CLI args, env files, and possibly
+# user input during runtime.
+config = load_config()
 
 def main():
     """
     Main process
     """
-
-    print('Starting')
-
-    # Die early if the Python version isn't up to snuff
     check_requirements()
 
-    # Get command line args. We'll prompt the user for a Handle password if they haven't entered one.
-    parser = argparse.ArgumentParser(prog='manifester', add_help=True, description=__doc__)
-    parser.add_argument('--image_base', help='image file prefix (e.g. ms-2020-020-142452)')
-    parser.add_argument('--handle_passwd', help='Handle server password')
-    parser.add_argument('--handle', help='Handle URL')
-    parser.add_argument('--ssh', help='IIIF server SSH connection string (ex. florinb@scenery.bc.edu)')
-    parser.add_argument('source_record', help='the source record (MARC file, ASpace record, etc.) to process')
-    args = parser.parse_args()
-
-    print(f'Opening SSH connection...')
     # Build a connection for SFTPing files if they entered an SSH connection string.
-    if args.ssh:
-        remote_dir = SSHConnection(args.ssh, '/opt/cantaloupe/images')
+    print(f'Opening SSH connection...')
+    if config.ssh:
+        remote_dir = SSHConnection(config.ssh, config.image_dir)
     else:
         remote_dir = None
 
     # List the local image files, if requested. If they just provided SSH credentials, look
     # for the images on that server.
-    print(f'Globbing {args.ssh}/opt/cantaloupe/images/{args.image_base}...')
+    print(f'Globbing {config.ssh}{config.image_dir}/{config.image_base}...')
     if remote_dir:
-        image_filenames = remote_dir.list_images(args.image_base)
+        image_filenames = remote_dir.list_images(config.image_base)
     else:
         # @todo get a list of files directly from Cantaloupe
         image_filenames = []
@@ -67,23 +56,19 @@ def main():
     for filename in image_filenames:
         images.append(build_image(filename))
 
-    hdl_passwd = args.handle_passwd if args.handle_passwd else getpass.getpass('Handle server password:')
-    hdl_create_statements = []
-
-    print(f'Reading {args.source_record}')
+    print(f'Reading {config.source_record}')
 
     # For now, anything that ends in '.mrc' is a binary MARC file, while everything else is a
     # ASpace record.
     # @todo figure out a better way to identify record types
-    if args.source_record.endswith('.mrc'):
-        source_record = read_marc_file(args.source_record, args.image_base)
+    if config.source_record.endswith('.mrc'):
+        source_record = read_marc_file(config.source_record, config.image_base)
     else:
-        aspace_password = getpass.getpass('ASpace API admin password:')
-        aspace_response = lookup(args.source_record, 'admin', aspace_password)
-        source_record = ASpaceLookup(aspace_response, args.image_base)
+        aspace_response = lookup(config.source_record, 'admin', config.aspace_passwd)
+        source_record = ASpaceLookup(aspace_response, config.image_base)
 
     # Determine handle.
-    handle = args.handle if args.handle else source_record.identifier
+    handle = config.handle_url if config.handle_url else source_record.identifier
     handle_url = f'http://hdl.handle.net/2345.2/{handle}'
 
     print(f'Found {source_record.identifier}. Building manifest...')
@@ -95,7 +80,7 @@ def main():
     write_view_file(source_record.identifier, view)
 
     print(f'Building handles...')
-    hdl_create_statements.append(build_handles(source_record.identifier, hdl_passwd, source_record.identifier))
+    hdl_create_statements = [build_handles(source_record.identifier, config.handle_passwd, source_record.identifier)]
 
     print('Writing handle...')
     write_hdl_batchfile(hdl_create_statements)
@@ -119,8 +104,14 @@ def read_marc_file(marc_file: str, identifier: Optional[str]) -> AlmaRecord:
             return AlmaRecord(source_record, identifier=identifier)
 
 
-def build_image(filename: str):
-    image = Image(filename)
+def build_image(filename: str) -> Image:
+    """
+    Build a single image
+
+    :param filename: str the filename of the image
+    :return: Image the image file
+    """
+    image = Image(filename, config.iiif_base_url)
 
     print(f'...fetching {image.info_url}')
     r = http.request('GET', image.info_url)
@@ -141,23 +132,39 @@ def write_view_file(identifier: str, view: str) -> None:
     :param view: str the view file contents
     :return: None
     """
-    view_file = open('view/' + identifier, 'w')
-    view_file.write(view)
-    view_file.close()
+    full_path = os.path.join(config.view_dir, identifier)
+    fh = open(full_path, 'w')
+    fh.write(view)
+    fh.close()
 
 
-def write_manifest_file(identifier, manifest):
-    manifest_file = open('manifests/' + identifier + '.json', 'w')
-    manifest_file.write(json.dumps(manifest))
-    manifest_file.close()
+def write_manifest_file(identifier: str, manifest: dict):
+    """
+    Write the manifest to a file
+    :param identifier: str record identifier
+    :param manifest: dict the manifest values
+    :return:
+    """
+    filename = f'{identifier}.json'
+    full_path = os.path.join(config.manifest_dir, filename)
+    fh = open(full_path, 'w')
+    fh.write(json.dumps(manifest))
+    fh.close()
 
 
-def write_hdl_batchfile(hdl_create_statements):
+def write_hdl_batchfile(hdl_create_statements: List[str]):
+    """
+    Write the handle create statements to a file
+    :param hdl_create_statements: list the list of handle create statements
+    :return:
+    """
     hdl_file_title = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
-    hdl_out = open('hdl/handles-' + hdl_file_title + '.txt', 'w')
+    filename = f'handles-{hdl_file_title}.txt'
+    full_path = os.path.join(config.handle_dir, filename)
+    fh = open(full_path, 'w')
     all_hdl_create_statements = '\n'.join(hdl_create_statements)
-    hdl_out.write(all_hdl_create_statements)
-    hdl_out.close()
+    fh.write(all_hdl_create_statements)
+    fh.close()
 
 
 def build_view(identifier: str, record: object, handle_url: str):
