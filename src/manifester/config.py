@@ -40,7 +40,7 @@ def load_config() -> Config:
     config.image_base = args.image_base
     config.source_record = args.source_record
     config.handle_url = args.handle
-    config.verbosity = args.verbose
+    config.verbosity = max((30 - args.verbose * 10), 10) if args.verbose > 0 else 0
 
     # These must come from the env file.
     config.iiif_base_url = dotenv['IIIF_BASE_URL']
