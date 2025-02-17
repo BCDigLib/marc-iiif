@@ -64,9 +64,13 @@ def main():
     log.info(f'Reading {config.source_record}')
 
     # For now, anything that ends in '.mrc' is a binary MARC file, while everything else is a
-    # ASpace record.
+    # ASpace record. Anythin
     # @todo figure out a better way to identify record types
     if config.source_record.endswith('.mrc'):
+        source_record = read_marc_file(config.source_record, config.image_base)
+    elif config.source_record.endswith('.xlsx'):
+        source_record = read_marc_file(config.source_record, config.image_base)
+    elif config.source_record.endswith('.csv'):
         source_record = read_marc_file(config.source_record, config.image_base)
     else:
         aspace_response = lookup(config.source_record, 'admin', config.aspace_passwd)
@@ -105,6 +109,8 @@ def read_marc_file(marc_file: str, identifier: Optional[str]) -> AlmaRecord:
         # Get the first record
         for source_record in reader:
             return AlmaRecord(source_record, identifier=identifier)
+
+def read_csv_file() -> :
 
 
 def build_image(filename: str) -> Image:

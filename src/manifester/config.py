@@ -24,6 +24,7 @@ class Config:
     handle_dir: str
     image_dir: str
     verbosity: int
+    citation: str
 
 
 def load_config() -> Config:
@@ -40,6 +41,8 @@ def load_config() -> Config:
     config.image_base = args.image_base
     config.source_record = args.source_record
     config.handle_url = args.handle
+    config.citation = args.citation
+    config.attribution = args.attribution
     config.verbosity = max((30 - args.verbose * 10), 10) if args.verbose > 0 else 0
 
     # These must come from the env file.
@@ -71,9 +74,11 @@ def get_args():
     """
     parser = argparse.ArgumentParser(prog='manifester', add_help=True, description=__doc__)
     parser.add_argument('source_record', help='the source record (MARC file, ASpace record, etc.) to process')
-    parser.add_argument('--image_base', help='image file prefix (e.g. ms-2020-020-142452)', required=True)
+    parser.add_argument('--image_base', help='image file prefix (e.g. ms-2020-020-142452)')
     parser.add_argument('--handle', help='Handle URL')
     parser.add_argument('--ssh', help='IIIF server SSH connection string (ex. florinb@scenery.bc.edu)')
     parser.add_argument('--image_dir', help='image directory on IIIF server')
+    parser.add_argument('--citation', help='text of citation')
+    parser.add_argument('--attribution', help='text of attribution')
     parser.add_argument('-v', '--verbose', action='count', default=0)
     return parser.parse_args()

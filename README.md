@@ -53,12 +53,21 @@ manifester --ssh my_user@scenery.bc.edu --image_base im-m057-2000  /repositories
 
 The flags:
 
-* `--image_base` - the identifier portion of the image __[required]__
+* `--image_base` - the identifier portion of the image
 * `--ssh` - SSH credentials for a user who has access (using public key login) to the IIIF server.
 
 The final parameter is a source record containing metadata necessary to build the manifest.
 
-Check the manifester help (`manifester -h`) for additional options.
+The full list of options:
+
+* `-h`, `--help` - show this help message and exit
+* `--attribution ATTRIBUTION` - text of attribution
+* `--citation CITATION` - text of citation
+* `--handle HANDLE` - Handle URL
+* `--image_base IMAGE_BASE` - image file prefix (e.g. ms-2020-020-142452)
+* `--image_dir IMAGE_DIR` - image directory on IIIF server
+* `--ssh SSH` - IIIF server SSH connection string (ex. florinb@scenery.bc.edu)
+* `-v, --verbose` - increase output verbosity
 
 ## Source formats
 
@@ -66,5 +75,7 @@ Currently supported source record formats:
 
 * binary MARC records
 * ArchivesSpace record URLs
+* Excel files containing lists of metadata
+* CSV files containing lists of metadata
 
 To add a new source record format, create a new class inheriting from the SourceRecord abstract class. 
