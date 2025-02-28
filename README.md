@@ -51,6 +51,12 @@ For an ASpace record, use the URL path for the record:
 manifester --ssh my_user@scenery.bc.edu --image_base im-m057-2000  /repositories/###/resources/### 
 ```
 
+For an Excel file with multiple records, use the path to the file. The `image_base` is not necessary, since the image URLs will be derived from the identifiers in the file:
+
+```commandline
+manifester --ssh my_user@scenery.bc.edu please-make-these-manifests.xlsx
+```
+
 The flags:
 
 * `--image_base` - the identifier portion of the image
@@ -76,6 +82,5 @@ Currently supported source record formats:
 * binary MARC records
 * ArchivesSpace record URLs
 * Excel files containing lists of metadata
-* CSV files containing lists of metadata
 
 To add a new source record format, create a new class inheriting from the SourceRecord abstract class. 

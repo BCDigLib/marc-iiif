@@ -228,4 +228,11 @@ cython_debug/
 # MARC files.
 *.mrc
 
+# CSV and Excel Files
+*.csv
+*.xlsx
+
+# FITS output
+*.xml
+
 .idea

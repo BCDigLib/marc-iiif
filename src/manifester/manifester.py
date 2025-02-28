@@ -19,6 +19,7 @@ from manifester.config import load_config
 from manifester.image import Image
 from manifester.manifest_builder import build_manifest
 from manifester.ssh_connection import SSHConnection
+from manifester.xlsx_reader import read_excel
 
 src_path = os.path.dirname(__file__)
 http = urllib3.PoolManager()
@@ -34,83 +35,86 @@ else:
     log.basicConfig(format="%(levelname)s: %(message)s")
 
 
+# Build a connection for SFTPing files if they entered an SSH connection string.
+log.info(f'Opening SSH connection as {config.ssh}')
+if config.ssh:
+    remote_dir = SSHConnection(config.ssh, config.image_dir)
+else:
+    remote_dir = None
+
+
 def main():
     """
     Main process
     """
     check_requirements()
 
-    # Build a connection for SFTPing files if they entered an SSH connection string.
-    log.info(f'Opening SSH connection as {config.ssh}')
-    if config.ssh:
-        remote_dir = SSHConnection(config.ssh, config.image_dir)
+    log.info(f'Reading {config.source_record}')
+
+    # For now, anything that ends in '.mrc' is a binary MARC file, while everything else is a
+    # ASpace record.
+    # @todo figure out a better way to identify record types
+    if config.source_record.endswith('.mrc'):
+        source_records = read_marc_file(config.source_record, config.image_base)
+    elif config.source_record.endswith('.xlsx'):
+        source_records = read_excel(config.source_record)
+    elif config.source_record.endswith('.csv'):
+        source_records = read_marc_file(config.source_record, config.image_base)
     else:
-        remote_dir = None
+        aspace_response = lookup(config.source_record, 'admin', config.aspace_passwd)
+        source_records = [ASpaceLookup(aspace_response, config.image_base)]
+
+    for source_record in source_records:
+        process_record(source_record)
+
+
+def process_record(source_record):
     # List the local image files, if requested. If they just provided SSH credentials, look
     # for the images on that server.
-    log.debug(f'Globbing {config.ssh}{config.image_dir}/{config.image_base}...')
+    image_base = config.image_base if config.image_base else source_record.identifier
+    log.debug(f'Globbing {config.ssh}{config.image_dir}/{image_base}...')
     if remote_dir:
-        image_filenames = remote_dir.list_images(config.image_base)
+        image_filenames = remote_dir.list_images(image_base)
     else:
+        log.debug('No remote directory found')
         # @todo get a list of files directly from Cantaloupe
         image_filenames = []
-    image_filenames.sort()
+    if len(image_filenames) == 0:
+        raise Exception(f'Found no images for {image_base}')
 
+    image_filenames.sort()
     log.info(f'Found {len(image_filenames)} image files. Looking up dimensions...')
     images = []
     for filename in image_filenames:
         images.append(build_image(filename))
-
-    log.info(f'Reading {config.source_record}')
-
-    # For now, anything that ends in '.mrc' is a binary MARC file, while everything else is a
-    # ASpace record. Anythin
-    # @todo figure out a better way to identify record types
-    if config.source_record.endswith('.mrc'):
-        source_record = read_marc_file(config.source_record, config.image_base)
-    elif config.source_record.endswith('.xlsx'):
-        source_record = read_marc_file(config.source_record, config.image_base)
-    elif config.source_record.endswith('.csv'):
-        source_record = read_marc_file(config.source_record, config.image_base)
-    else:
-        aspace_response = lookup(config.source_record, 'admin', config.aspace_passwd)
-        source_record = ASpaceLookup(aspace_response, config.image_base)
+    log.info(f'Build {len(images)} images')
 
     # Determine handle.
     handle = config.handle_url if config.handle_url else source_record.identifier
     handle_url = f'http://hdl.handle.net/2345.2/{handle}'
-
     log.info(f'Found {source_record.identifier}. Building manifest...')
     manifest = build_manifest(images, source_record, handle_url)
     write_manifest_file(source_record.identifier, manifest)
-
     log.info(f'Building view...')
     view = build_view(source_record.identifier, source_record, handle_url)
     write_view_file(source_record.identifier, view)
-
     log.info(f'Building handles...')
     hdl_create_statements = [build_handles(source_record.identifier, config.handle_passwd, source_record.identifier)]
-
     log.info('Writing handle...')
     write_hdl_batchfile(hdl_create_statements)
 
 
-def read_marc_file(marc_file: str, identifier: Optional[str]) -> AlmaRecord:
+def read_marc_file(marc_file: str, identifier: Optional[str]) -> List[AlmaRecord]:
     """
     Extract the source file from a binary MARC record
 
     :param marc_file: str full path to the MARC file
     :param identifier: Optional[str] the records identifier; if None, the MMS will be used
-    :return: AlmaRecord the first record in the file
+    :return: [AlmaRecord] the records in the file
     """
     with open(marc_file, 'rb') as bibs:
         reader = MARCReader(bibs)
-
-        # Get the first record
-        for source_record in reader:
-            return AlmaRecord(source_record, identifier=identifier)
-
-def read_csv_file() -> :
+        return [AlmaRecord(source_record, identifier=identifier) for source_record in reader]
 
 
 def build_image(filename: str) -> Image:
