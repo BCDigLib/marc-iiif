@@ -48,9 +48,9 @@ class Image:
         # IIIF thumbnail URL (e.g. 'https://iiif.bc.edu/iiif/2/bc-2022-172_0042.jp2/full/!200,200/0/default.jpg')
         self.thumbnail_url = f'{self.image_url}/full/!200,200/0/default.jpg'
 
-        self.annotation_url = f'https://iiif.bc.edu/iiif/2/{self.cui}/{self.counter}/annotation/1'
-
         self.canvas_url = f'https://iiif.bc.edu/iiif/2/{self.cui}/canvas/{self.counter}'
+
+        self.annotation_url = f'{self.canvas_url}/annotation/1'
 
         counter_index = int(self.counter) - 1
         self.range_url = f'https://iiif.bc.edu/iiif/2/{self.cui}/range/r-{str(counter_index)}'

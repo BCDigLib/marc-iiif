@@ -34,7 +34,6 @@ if config.verbosity:
 else:
     log.basicConfig(format="%(levelname)s: %(message)s")
 
-
 # Build a connection for SFTPing files if they entered an SSH connection string.
 log.info(f'Opening SSH connection as {config.ssh}')
 if config.ssh:
@@ -96,7 +95,8 @@ def process_record(source_record):
     manifest = build_manifest(images, source_record, handle_url)
     write_manifest_file(source_record.identifier, manifest)
     log.info(f'Building view...')
-    view = build_view(source_record.identifier, source_record, handle_url)
+    first_canvas = images[0].canvas_url
+    view = build_view(source_record.identifier, source_record, handle_url, first_canvas)
     write_view_file(source_record.identifier, view)
     log.info(f'Building handles...')
     hdl_create_statements = [build_handles(source_record.identifier, config.handle_passwd, source_record.identifier)]
@@ -180,14 +180,15 @@ def write_hdl_batchfile(hdl_create_statements: List[str]):
     fh.close()
 
 
-def build_view(identifier: str, record: object, handle_url: str):
+def build_view(identifier: str, record: object, handle_url: str, first_canvas: str):
     """
     Build view file text
 
     :param identifier: str the identifier
     :param record: object the MARC record
-    :return:str the text of the view file
+    :param first_canvas: str the Canvas of the first image
     :param handle_url: str the full URL of the handle
+    :return:str the text of the view file
     """
     # Build from an HTML template.
     with open(f'{src_path}/view-template.html') as fh:
@@ -195,6 +196,7 @@ def build_view(identifier: str, record: object, handle_url: str):
     html = html.replace('__RECORD_TITLE__', record.title)
     html = html.replace('__RECORD_IDENTIFIER__', identifier)
     html = html.replace('__HANDLE_URL__', handle_url)
+    html = html.replace('__FIRST_CANVAS__', first_canvas)
     return html
 
 

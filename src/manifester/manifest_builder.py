@@ -28,7 +28,7 @@ def build_manifest(image_list: list[Image], source: SourceRecord, handle_url: st
             },
             {
                 'label': 'Preferred Citation',
-                'value': source.citation + ' ' + handle_url
+                'value': source.citation
             }
 
         ],
