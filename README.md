@@ -7,8 +7,19 @@ This script exists as a counterpart to the ruby gem stored in BCDIgLib/aspaceiii
 To install
 
 ```shell
+# Clone this repository
+git clone https://github.com/BCDigLib/marc-iiif.git
+cd marc-iiif
+
+# Create a Python virtualenv in this folder and use it
+python -m venv venv
+source ./venv/bin/activate
+
+# Install setup tools and install the app
 pip install --upgrade setuptools
 python -m pip install .
+
+# Create the app's .env file
 cp sample.env .env
 ```
 
@@ -19,6 +30,15 @@ If you want to modify the application, you can install it with the `--editable`
 
 ```shell
 python -m pip install --editable .
+```
+
+# Upgrading
+
+To upgrade, pull any changes to the main branch and install
+
+```shell
+git pull
+pythom -m pip install .
 ```
 
 # Usage
