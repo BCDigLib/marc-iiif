@@ -92,7 +92,9 @@ The full list of options:
 * `--handle HANDLE` - Handle URL
 * `--image_base IMAGE_BASE` - image file prefix (e.g. ms-2020-020-142452)
 * `--image_dir IMAGE_DIR` - image directory on IIIF server
-* `--ssh SSH` - IIIF server SSH connection string (ex. florinb@scenery.bc.edu)
+* `--ssh SSH` - IIIF server SSH connection string (ex. florinb@scenery.bc.edu
+* `--view viewfile.html` - filename for view file output
+* `--manifest manifestfile.json` - filename for manifest file output
 * `-v, --verbose` - increase output verbosity
 
 ## Source formats

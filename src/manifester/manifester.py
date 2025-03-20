@@ -145,7 +145,8 @@ def write_view_file(identifier: str, view: str) -> None:
     :param view: str the view file contents
     :return: None
     """
-    fh = open(f'{identifier}.html', 'w')
+    filename = f'{config.view_filename}' if config.view_filename else f'{identifier}.html'
+    fh = open(filename, 'w')
     fh.write(view)
     fh.close()
 
@@ -157,7 +158,8 @@ def write_manifest_file(identifier: str, manifest: dict):
     :param manifest: dict the manifest values
     :return:
     """
-    fh = open(f'{identifier}.json', 'w')
+    filename = f'{config.manifest_filename}' if config.manifest_filename else f'{identifier}.json'
+    fh = open(filename, 'w')
     fh.write(json.dumps(manifest))
     fh.close()
 

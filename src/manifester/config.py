@@ -25,6 +25,8 @@ class Config:
     image_dir: str
     verbosity: int
     citation: str
+    manifest_filename: str
+    view_filename: str
 
 
 def load_config() -> Config:
@@ -44,6 +46,8 @@ def load_config() -> Config:
     config.citation = args.citation
     config.attribution = args.attribution
     config.verbosity = max((30 - args.verbose * 10), 10) if args.verbose > 0 else 0
+    config.manifest_filename = args.manifest
+    config.view_filename = args.view
 
     # These must come from the env file.
     config.iiif_base_url = dotenv['IIIF_BASE_URL']
@@ -81,4 +85,6 @@ def get_args():
     parser.add_argument('--citation', help='text of citation')
     parser.add_argument('--attribution', help='text of attribution')
     parser.add_argument('-v', '--verbose', action='count', default=0)
+    parser.add_argument('--manifest', help='manifest file name')
+    parser.add_argument('--view', help='view file name')
     return parser.parse_args()
