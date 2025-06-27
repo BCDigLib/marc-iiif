@@ -71,7 +71,7 @@ def process_record(source_record):
     # List the local image files, if requested. If they just provided SSH credentials, look
     # for the images on that server.
     image_base = config.image_base if config.image_base else source_record.identifier
-    log.debug(f'Globbing {config.ssh}{config.image_dir}/{image_base}...')
+    log.info(f'Globbing {config.ssh}{config.image_dir}/{image_base}...')
     if remote_dir:
         image_filenames = remote_dir.list_images(image_base)
     else:

@@ -11,7 +11,7 @@ def read_excel(xlsx_file: str) -> list[XLSXRow]:
     :param xlsx_file: full path to Excel file
     :return: list[XLSXRow] a list of source records
     """
-    workbook = load_workbook(filename='MS1986-167_Goldstein-Avery-papers_Template-for-digitization-metadata.xlsx')
+    workbook = load_workbook(filename=xlsx_file)
     digitization_sheet = workbook["Digitization"]
     manifest_sheet = workbook["Manifest"]
 
@@ -21,7 +21,7 @@ def read_excel(xlsx_file: str) -> list[XLSXRow]:
 
     records = []
     for i in range(2, digitization_sheet.max_row):
-        record = XLSXRow(manifest_sheet[i], digitization_sheet[i][0].value)
+        record = XLSXRow(manifest_sheet[i], digitization_sheet[i][1].value)
         records.append(record)
         logging.info(f'Extracted {record.identifier} ::: {record.title}')
 
