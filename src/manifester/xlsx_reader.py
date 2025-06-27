@@ -11,7 +11,7 @@ def read_excel(xlsx_file: str) -> list[XLSXRow]:
     :param xlsx_file: full path to Excel file
     :return: list[XLSXRow] a list of source records
     """
-    workbook = load_workbook(filename='MS1986-046-digitization-metadata.xlsx')
+    workbook = load_workbook(filename='MS1986-167_Goldstein-Avery-papers_Template-for-digitization-metadata.xlsx')
     digitization_sheet = workbook["Digitization"]
     manifest_sheet = workbook["Manifest"]
 
