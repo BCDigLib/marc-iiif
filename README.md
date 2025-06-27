@@ -7,8 +7,19 @@ This script exists as a counterpart to the ruby gem stored in BCDIgLib/aspaceiii
 To install
 
 ```shell
+# Clone this repository
+git clone https://github.com/BCDigLib/marc-iiif.git
+cd marc-iiif
+
+# Create a Python virtualenv in this folder and use it
+python -m venv venv
+source ./venv/bin/activate
+
+# Install setup tools and install the app
 pip install --upgrade setuptools
 python -m pip install .
+
+# Create the app's .env file
 cp sample.env .env
 ```
 
@@ -19,6 +30,15 @@ If you want to modify the application, you can install it with the `--editable`
 
 ```shell
 python -m pip install --editable .
+```
+
+# Upgrading
+
+To upgrade, pull any changes to the main branch and install
+
+```shell
+git pull
+pythom -m pip install .
 ```
 
 # Usage
@@ -72,7 +92,9 @@ The full list of options:
 * `--handle HANDLE` - Handle URL
 * `--image_base IMAGE_BASE` - image file prefix (e.g. ms-2020-020-142452)
 * `--image_dir IMAGE_DIR` - image directory on IIIF server
-* `--ssh SSH` - IIIF server SSH connection string (ex. florinb@scenery.bc.edu)
+* `--ssh SSH` - IIIF server SSH connection string (ex. florinb@scenery.bc.edu
+* `--view viewfile.html` - filename for view file output
+* `--manifest manifestfile.json` - filename for manifest file output
 * `-v, --verbose` - increase output verbosity
 
 ## Source formats

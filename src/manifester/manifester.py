@@ -145,8 +145,8 @@ def write_view_file(identifier: str, view: str) -> None:
     :param view: str the view file contents
     :return: None
     """
-    full_path = os.path.join(config.view_dir, identifier)
-    fh = open(full_path, 'w')
+    filename = f'{config.view_filename}' if config.view_filename else f'{identifier}.html'
+    fh = open(filename, 'w')
     fh.write(view)
     fh.close()
 
@@ -158,9 +158,8 @@ def write_manifest_file(identifier: str, manifest: dict):
     :param manifest: dict the manifest values
     :return:
     """
-    filename = f'{identifier}.json'
-    full_path = os.path.join(config.manifest_dir, filename)
-    fh = open(full_path, 'w')
+    filename = f'{config.manifest_filename}' if config.manifest_filename else f'{identifier}.json'
+    fh = open(filename, 'w')
     fh.write(json.dumps(manifest))
     fh.close()
 
@@ -172,9 +171,7 @@ def write_hdl_batchfile(hdl_create_statements: List[str]):
     :return:
     """
     hdl_file_title = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
-    filename = f'handles-{hdl_file_title}.txt'
-    full_path = os.path.join(config.handle_dir, filename)
-    fh = open(full_path, 'w')
+    fh = open(f'handles-{hdl_file_title}-hdl.txt', 'w')
     all_hdl_create_statements = '\n'.join(hdl_create_statements)
     fh.write(all_hdl_create_statements)
     fh.close()
