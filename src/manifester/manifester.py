@@ -221,6 +221,20 @@ def check_requirements():
 
     :return: None
     """
+    log.info('Checking requirements')
+
     # Uses Literal String Interpolation, available only in Python 3.6+
     if sys.version_info < (3, 6):
         raise Exception('Requires python 3.6 or higher')
+    else:
+        log.info(f'Found Python {sys.version_info}')
+
+    if not os.path.isfile(f'{src_path}/view-template.html'):
+        raise Exception(f'{src_path}/view-template.html not found')
+    else:
+        log.info(f'Found {src_path}/view-template.html')
+
+    if not os.path.isfile(f''):
+        raise Exception(f'{src_path}/handle-template.txt not found')
+    else:
+        log.info(f'Found {src_path}/handle-template.txt')
