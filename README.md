@@ -11,6 +11,9 @@ To install
 git clone https://github.com/BCDigLib/marc-iiif.git
 cd marc-iiif
 
+# Create the app's .env file and edit if necessary
+cp sample.env ./src/manifester/.env
+
 # Create a Python virtualenv in this folder and use it
 python -m venv venv
 source ./venv/bin/activate
@@ -19,8 +22,6 @@ source ./venv/bin/activate
 pip install --upgrade setuptools
 python -m pip install .
 
-# Create the app's .env file
-cp sample.env .env
 ```
 
 Then edit the .env configuration file as appropriate.

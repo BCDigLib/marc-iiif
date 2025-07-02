@@ -99,7 +99,7 @@ def process_record(source_record):
     view = build_view(source_record.identifier, source_record, handle_url, first_canvas)
     write_view_file(source_record.identifier, view)
     log.info(f'Building handles...')
-    hdl_create_statements = [build_handles(source_record.identifier, config.handle_passwd, source_record.identifier)]
+    hdl_create_statements = [build_handles(source_record.identifier, config.handle_passwd)]
     log.info('Writing handle...')
     write_hdl_batchfile(hdl_create_statements)
 
@@ -197,7 +197,7 @@ def build_view(identifier: str, record: object, handle_url: str, first_canvas: s
     return html
 
 
-def build_handles(identifier, hdl_password, mms: str):
+def build_handles(identifier: str, hdl_password: str):
     """
     Build Handle bulk file
 
@@ -210,7 +210,6 @@ def build_handles(identifier, hdl_password, mms: str):
     with open(f'{src_path}/handle-template.txt') as fh:
         hdl_text = fh.read()
     hdl_text = hdl_text.replace('__RECORD_IDENTIFIER__', identifier)
-    hdl_text = hdl_text.replace('__RECORD_MMS__', mms)
     hdl_text = hdl_text.replace('__HANDLE_PASSWORD__', hdl_password)
     return hdl_text
 
@@ -234,7 +233,7 @@ def check_requirements():
     else:
         log.info(f'Found {src_path}/view-template.html')
 
-    if not os.path.isfile(f''):
+    if not os.path.isfile(f'{src_path}/handle-template.txt'):
         raise Exception(f'{src_path}/handle-template.txt not found')
     else:
         log.info(f'Found {src_path}/handle-template.txt')

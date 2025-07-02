@@ -31,4 +31,4 @@ addopts = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["*.html", "*.txt"]
+"*" = ["*.html", "*.txt", ".env"]
