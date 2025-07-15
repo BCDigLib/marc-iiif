@@ -27,6 +27,9 @@ class Image:
         :param base_url: str base URL for the IIIF server
         :param lookup: bool should we look up the image dimensions?
         """
+        # Delete any extra trailing slash on base.
+        base_url = base_url.strip('/')
+
         # Get the full filename (e.g. 'bc-2022-172_0042.jp2')
         self.filename = os.path.split(filepath)[1]
 

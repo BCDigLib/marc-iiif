@@ -240,8 +240,10 @@ cython_debug/
 
 # View files
 *.html
+view/*
 
 # Handle files
 *hdl.txt
+hdl/*
 
 .idea
