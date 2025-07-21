@@ -5,7 +5,12 @@ from getpass import getpass
 import argparse
 
 src_dir = os.path.dirname(__file__)
-root_dir = os.path.join(src_dir, os.pardir, os.pardir)
+root_dir = os.getcwd()
+
+defaults = {
+    'image_dir': '/opt/cantaloupe/images',
+    'iif_url': 'https://iiif.bc.edu/iiif/2'
+}
 
 
 class Config:
@@ -49,16 +54,14 @@ def load_config() -> Config:
     config.manifest_filename = args.manifest
     config.view_filename = args.view
 
-    # These must come from the env file.
-    config.iiif_base_url = dotenv['IIIF_BASE_URL']
-
     # These could come from the env file or CLI arguments.
     config.ssh = args.ssh if args.ssh else dotenv['SSH_CREDENTIALS']
-    config.image_dir = args.image_dir if args.image_dir else dotenv['IMAGE_DIR']
 
     # These must either be from the env file or entered by the user at runtime.
     config.handle_passwd = dotenv['HANDLE_PASSWD'] if 'HANDLE_PASSWD' in dotenv else getpass('Handle server password:')
     config.aspace_passwd = dotenv['ASPACE_PASSWD'] if 'ASPACE_PASSWD' in dotenv else getpass('ASpace admin password:')
+    config.iiif_base_url = dotenv['IIIF_BASE_URL'] if 'IIIF_BASE_URL' in dotenv else defaults['iif_url']
+    config.image_dir = args.image_dir if args.image_dir else defaults['image_dir']
 
     # These are either in the env file or use a local default.
     config.manifest_dir = dotenv['MANIFEST_DIR'] if 'MANIFEST_DIR' in dotenv else os.path.join(root_dir, 'manifests')
