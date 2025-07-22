@@ -16,6 +16,7 @@ from manifester.alma_record import AlmaRecord
 from manifester.aspace_client import lookup
 from manifester.aspace_lookup import ASpaceLookup
 from manifester.config import load_config
+from manifester.errors import BadImageInfoURLError
 from manifester.image import Image
 from manifester.manifest_builder import build_manifest
 from manifester.ssh_connection import SSHConnection
@@ -128,6 +129,12 @@ def build_image(filename: str) -> Image:
 
     log.info(f'...fetching {image.info_url}')
     r = http.request('GET', image.info_url)
+    if r.status == 404:
+        raise BadImageInfoURLError(
+            f'Received 404 when looking up {image.info_url}. '
+            f'Make sure the permissions for {config.image_dir}/{image.filename} on scenery '
+            f'are set to 664 (read permission for all users).'
+        )
     info = json.loads(r.data.decode('utf-8'))
 
     image.height = info['height']
