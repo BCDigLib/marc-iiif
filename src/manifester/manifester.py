@@ -19,6 +19,7 @@ from manifester.config import load_config
 from manifester.errors import BadImageInfoURLError
 from manifester.image import Image
 from manifester.manifest_builder import build_manifest
+from manifester.source_record import SourceRecord
 from manifester.ssh_connection import SSHConnection
 from manifester.xlsx_reader import read_excel
 
@@ -65,12 +66,15 @@ def main():
         source_records = [ASpaceLookup(aspace_response, config.image_base)]
 
     for source_record in source_records:
-        process_record(source_record)
+        if source_record.identifier is not None:
+            process_record(source_record)
 
 
 def process_record(source_record):
     # List the local image files, if requested. If they just provided SSH credentials, look
     # for the images on that server.
+    log.info(f'Processing {source_record.identifier}')
+
     image_base = config.image_base if config.image_base else source_record.identifier
     log.info(f'Globbing {config.ssh}{config.image_dir}/{image_base}...')
     if remote_dir:
@@ -87,20 +91,21 @@ def process_record(source_record):
     images = []
     for filename in image_filenames:
         images.append(build_image(filename))
-    log.info(f'Build {len(images)} images')
 
-    # Determine handle.
-    handle = config.handle_url if config.handle_url else source_record.identifier
-    handle_url = f'http://hdl.handle.net/2345.2/{handle}'
+    handle_url = build_handle_url(source_record)
+
     log.info(f'Found {source_record.identifier}. Building manifest...')
     manifest = build_manifest(images, source_record, handle_url)
     write_manifest_file(source_record.identifier, manifest)
+
     log.info(f'Building view...')
     first_canvas = images[0].canvas_url
     view = build_view(source_record.identifier, source_record, handle_url, first_canvas)
     write_view_file(source_record.identifier, view)
+
     log.info(f'Building handles...')
     hdl_create_statements = [build_handles(source_record.identifier, config.handle_passwd)]
+
     log.info('Writing handle...')
     write_hdl_batchfile(hdl_create_statements)
 
@@ -219,6 +224,12 @@ def build_handles(identifier: str, hdl_password: str):
     hdl_text = hdl_text.replace('__RECORD_IDENTIFIER__', identifier)
     hdl_text = hdl_text.replace('__HANDLE_PASSWORD__', hdl_password)
     return hdl_text
+
+
+def build_handle_url(source_record: SourceRecord) -> str:
+    if config.handle_url:
+        return config.handle_url
+    return source_record.handle_url
 
 
 def check_requirements():

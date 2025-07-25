@@ -12,16 +12,11 @@ def read_excel(xlsx_file: str) -> list[XLSXRow]:
     :return: list[XLSXRow] a list of source records
     """
     workbook = load_workbook(filename=xlsx_file)
-    digitization_sheet = workbook["Digitization"]
     manifest_sheet = workbook["Manifest"]
 
-    # The two worksheets in the file should have the same number of rows.
-    if manifest_sheet.max_row != digitization_sheet.max_row:
-        raise Exception('Mismatch between digitization and manifest records')
-
     records = []
-    for i in range(2, digitization_sheet.max_row):
-        record = XLSXRow(manifest_sheet[i], digitization_sheet[i][1].value)
+    for i in range(2, manifest_sheet.max_row):
+        record = XLSXRow(manifest_sheet[i])
         records.append(record)
         logging.info(f'Extracted {record.identifier} ::: {record.title}')
 

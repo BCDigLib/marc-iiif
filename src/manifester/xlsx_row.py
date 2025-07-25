@@ -4,19 +4,21 @@ from typing import Optional
 
 class XLSXRow(SourceRecord):
     _manifest_row: tuple
-    _identifier: str
 
-    def __init__(self, manifest_row: tuple, identifier: str):
+    def __init__(self, manifest_row: tuple):
         self._manifest_row = manifest_row
-        self._identifier = identifier
 
     @property
     def identifier(self) -> str:
-        return self._identifier
+        return self._manifest_row[0].value
+
+    @property
+    def handle_url(self) -> str:
+        return self._manifest_row[1].value
 
     @property
     def title(self) -> str:
-        return self._manifest_row[1].value
+        return self._manifest_row[2].value
 
     @property
     def publication_year(self) -> str:
@@ -24,8 +26,8 @@ class XLSXRow(SourceRecord):
 
     @property
     def attribution(self) -> Optional[str]:
-        return self._manifest_row[2].value
+        return self._manifest_row[3].value
 
     @property
     def citation(self) -> Optional[str]:
-        return self._manifest_row[3].value
+        return self._manifest_row[4].value
